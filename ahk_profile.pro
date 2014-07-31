@@ -69,7 +69,9 @@ CASE 1 OF
 		;;Output needs to be object profiles without baseline or peaks that are closer than 2*sigma to slitedge.
 		;;Profile normalized to have unit area
 		yfitnobase = 0
-		IF (result(2) GE abs(2*result(3))) AND (result(2) LE (slitwidth-abs(2*result(3)))) THEN yfitnobase = yfitnobase + gauss1(slitindex, result(2:4))
+		;;IF (result(2) GE abs(2*result(3))) AND (result(2) LE (slitwidth-abs(2*result(3)))) THEN yfitnobase = yfitnobase + gauss1(slitindex, result(2:4)) ;;Removed this condition for single peak case since we always want to have something to pass back to ahk_objextract (and int_tabulated!) -- May eventually find it's simply better to changed to (mean at least 1.75*sigma from either edge of slit) for all cases.
+
+		yfitnobase = yfitnobase + gauss1(slitindex, result(2:4))
 
 		area = int_tabulated(slitindex,yfitnobase)
 		yfitnorm = yfitnobase/abs(area)

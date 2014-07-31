@@ -226,7 +226,10 @@ wavemask = [3711.97,3721.94,3727.00,3734.37,3750.15,3770.63,3797.90,$
             3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
             4076.35,4101.74,4340.47,4363.21,4471.50,4713.17,4861.33,$
             4921.93,4958.91,5006.84,5015.68,5047.74,5197.90,5270.40,5517.71,$
-            5537.88,5754.64,5875.66,6300.30,6312.10,6363.78]
+            5537.88,5754.64,5875.66,6312.10,6363.78,6548.10,$
+            6562.77,6583.50,6678.16,6716.44,6730.82,7065.25,7135.80,$
+            7235.00,7281.35,7319.45,7330.20,7751.43,8268.00,8545.38,$
+            8598.39,8665.02,8727.12,8869.00,9014.91,9068.60]
 
 ;wavemask = [3727.00,4861.33,$
 ;            4958.91,5006.84,6363.78]
@@ -259,8 +262,9 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
 
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
-                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = CHK)
-
+                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
+                       waveimg=waveimg,wavemask=wavemask)
+;stop
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
@@ -297,7 +301,7 @@ objstruct = long_objfind(sciimg-skyimage, tset_slits = tset_slits $
                          , fwhm = FWHM, PEAK_SMTH = PEAK_SMTH $
                          , HAND_X = HAND_X, HAND_Y = HAND_Y $
                          , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
-                         , ISLIT = ISLIT)
+                         , ISLIT = ISLIT, wavemask = wavemask,waveimg=waveimg)
 ; EWR -- I like the first sky subtraction just fine!
 ;; splog, 'Redoing global sky subtraction'
 ;; skyimaget = long_skysub(sciimg, sciivar, piximg, slitmask, skymask, edgmask $
@@ -329,7 +333,8 @@ IF NOT keyword_set(objstruct) and nct gt 0 THEN BEGIN
     mwrfits, float(objimage)*float(slitmask GT 0), scifile
     mwrfits, float(outmask)*float(slitmask GT 0), scifile
     mwrfits, final_struct, scifile
-
+    stop ;;AHK
+	
     splog, 'Compressing ', scifile
     spawn, 'gzip -f '+scifile
     long_plotsci, scifile, hard_ps = repstr(scifile, '.fits', '.ps')
@@ -432,6 +437,8 @@ FOR jj = 0L, nreduce-1L DO BEGIN
     tfinal_struct = struct_append(tfinal_struct, extract_struct)
 ENDFOR
 
+; EWR this replaces their per-slit model with the orignal model. 
+skyimage = orig_sky
 ;; Save
 if keyword_set(ISLIT) and nct GT 0 then begin 
     objimage[islitmask] = objimaget[islitmask] 
@@ -502,6 +509,19 @@ if keyword_set(ISLIT) and nct GT 0 then begin
     final_struct.objid = lindgen(n_elements(final_struct)) + 1
 endif else final_struct = tfinal_struct
 
+
+; Save final_struct.FLUXMODEL then remove from final_struct
+; since mwrfits isn't capable of dealing with pointers
+;nobj = max(final_struct.objid)
+;struct={FLUXMODEL:ptr_new()}
+;array=Replicate(struct,nobj)
+
+;FOR kk = 0, nobj-1 DO BEGIN
+;    array[kk].FLUXMODEL = final_struct[kk].FLUXMODEL
+;ENDFOR
+
+remove_tags, final_struct, 'FLUXMODEL', newfinal_struct ;; To remove more than one tag, put into array ['tag1','tag2','tag3']
+
 ;----------
 ; Write output file
 splog, 'Writing FITS file ', scifile
@@ -510,7 +530,7 @@ mwrfits, float(modelivar)*float(slitmask GT 0), scifile
 mwrfits, float(skyimage)*float(slitmask GT 0), scifile
 mwrfits, float(objimage)*float(slitmask GT 0), scifile
 mwrfits, float(outmask)*float(slitmask GT 0), scifile
-mwrfits, final_struct, scifile
+mwrfits, newfinal_struct, scifile
 
 splog, 'Compressing ', scifile
 spawn, 'gzip -f '+scifile

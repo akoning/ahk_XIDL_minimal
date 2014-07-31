@@ -156,7 +156,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
   image_size=size(invvar)
   linemask = bytarr(image_size[1],image_size[2])
   offmask = bytarr(image_size[1],image_size[2])
-  win = 7.0                    ; Angstroms
+  win = 3.5                    ; Angstroms
   for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]) lt win 
   for ii = 0,n_elements(wavemask)-1 do offmask = offmask or (abs(waveimg-wavemask[ii]) gt win $
                                                              and abs(waveimg-wavemask[ii]) lt 2*win) 
@@ -212,13 +212,13 @@ function ewr_skymask, image, tset_slits=tset_slits $
         back = onvec
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
-        onback = smooth(back,window,/edge_trun)
+        onback = smooth(back,window,/edge_trun,/nan)
         fluxsub = (onvec-offvec)>0
 
         back = fluxsub
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
-        onoffback = smooth(back,window,/edge_trun)
+        onoffback = smooth(back,window,/edge_trun,/nan)
 
         if total(fluxsub gt 0) lt 10 then begin
            fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25) 
@@ -226,12 +226,12 @@ function ewr_skymask, image, tset_slits=tset_slits $
            back = fluxsub
            for j = -window,window do back = back < shift(back,j)
            for j = -window,window do back = back > shift(back,j)
-           onoffback = smooth(back,window,/edge_trun)
+           onoffback = smooth(back,window,/edge_trun,/nan)
         endif
      endelse
 
 
-     linemaskvec = (fluxsub/onoffback gt 1.1) 
+     linemaskvec = (fluxsub/onoffback gt 1.1)
 
      linemaskvec = morph_close(linemaskvec,fltarr(5)+1)
 
@@ -240,7 +240,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
      linemaskvec2 = fluxsub gt cutoff
      linemaskvec = linemaskvec < linemaskvec2
 
-     skymaskvec = onvec/onback gt 1.2
+     skymaskvec = onvec/onback gt 1.5
      skymaskvec = morph_close(skymaskvec,fltarr(5)+1)
 
 
