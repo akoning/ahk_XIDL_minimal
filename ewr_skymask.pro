@@ -231,7 +231,11 @@ function ewr_skymask, image, tset_slits=tset_slits $
      endelse
 
 
+<<<<<<< HEAD
      linemaskvec = (fluxsub/onoffback gt 2.0)*0
+=======
+     linemaskvec = (fluxsub/onoffback gt 1.1)
+>>>>>>> 16f33ea15b9722ab4c8fc1481e3889bb73d2b7b4
 
      linemaskvec = morph_close(linemaskvec,fltarr(5)+1)
 
