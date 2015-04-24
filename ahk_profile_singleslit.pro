@@ -1,14 +1,14 @@
-function ahk_profile,linesflux,slitindex,yfitnorm,result,slitid=slitid
+function ahk_profile_singleslit,linesflux,slitindex,yfitnorm,result,scifile=scifile,slitid=slitid
 
 ;+
 ; NAME:
-;   ahk_profile
+;   ahk_profile_singleslit
 ;
 ; PURPOSE:
 ;   Fit gaussian(s) + linear baseline across input vector. Normalize to unit area.
 ;
 ; CALLING SEQUENCE:
-;  ahk_profile(linesflux,slitindex,yfitnorm,result,slitid=1)
+;  ahk_profile_singleslit(linesflux,slitindex,yfitnorm,result,slitid=1)
 ;
 ; INPUTS:
 ;
@@ -28,8 +28,7 @@ function ahk_profile,linesflux,slitindex,yfitnorm,result,slitid=slitid
 ; PROCEDURES CALLED:
 ;
 ; REVISION HISTORY:
-;   26-June-2014 -- Written by Alice Koning
-;   12-Oct-2014 -- Applying yfitnorm to normalized x position across the slit has been removed from here and put into a separate script (ahk_profile2imarray.pro)
+;   3-November-2014 -- Written by Alice Koning
 ;-
 
 ;;Fit Gaussian using mpfitpeak and subtract. Repeat until only noise remains. Redo fit using all found mpfitpeak as starting point for mpfitexpr.
@@ -55,7 +54,7 @@ REPEAT BEGIN
 	linesflux_rem=linesflux_rem-yfit
 	print, 'mpfitpeak fitresult: ', fitresult
 	print, 'Approx area for mpfitpeak', fitresult(0)*fitresult(2)
-ENDREP UNTIL fitresult(0)*fitresult(2) LT 50 ;; or could use: fitresult(0) LT 6*abs(fitresult(3))
+ENDREP UNTIL fitresult(0)*fitresult(2) LT 65 ;; or could use: fitresult(0) LT 6*abs(fitresult(3))
 
 CASE 1 OF
 	(N_ELEMENTS(params)/mpnterms EQ 1): BEGIN
@@ -150,8 +149,8 @@ CASE 1 OF
 			;p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 			;;Save plot for profileCompareTests
-			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
+			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.ps'
+			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.ps'
 		;ENDIF
 
 	END
@@ -189,8 +188,8 @@ CASE 1 OF
 			;p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 			;;Save plot for profileCompareTests
-			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
+			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.ps'
+			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.ps'
 		;ENDIF
 	END
 	(N_ELEMENTS(params)/mpnterms EQ 5): BEGIN
@@ -229,8 +228,8 @@ CASE 1 OF
 			;p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 			;;Save plot for profileCompareTests
-			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
+			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.ps'
+			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.ps'
 		;ENDIF
 	END
 	(N_ELEMENTS(params)/mpnterms EQ 6): BEGIN
@@ -271,8 +270,8 @@ CASE 1 OF
 			;p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 			;;Save plot for profileCompareTests
-			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
+			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.ps'
+			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.ps'
 		;ENDIF
 	END
 	(N_ELEMENTS(params)/mpnterms EQ 7): BEGIN
@@ -315,16 +314,14 @@ CASE 1 OF
 			;p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 			;;Save plot for profileCompareTests
-			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
+			;p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.ps'
+			;p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.ps'
 		;ENDIF
 	END
 ELSE: BEGIN
 	print, 'Error identifying peaks.'
-	;result = 1.00
+	result = 1.00
 	yfitfinal = 1.00
-	;yfitnobase = 1.00
-	;yfitnorm = 1.00 ;;Don't want to defined yfitnorm, so N_ELEMENTS returns 0 and ahk_comboprofile works correctly
 	;;p = PLOT(slitindex, linesflux, yrange=[0.9*min(linesflux),1.1*max(linesflux)], title=slitid)
 	;;p2 = PLOT(slitindex, yfitfinal, 'b', thick=5, title=slitid)
 END
@@ -339,9 +336,12 @@ IF (N_ELEMENTS(yfitnobase) GT 0) THEN BEGIN
 	p2 = PLOT(slitindex, yfitnorm, 'b', thick=5, title=slitid)
 
 	;;Save plot for profileCompareTests
-	p.Save, 'linesflux_slitid'+StrTrim(slitid,2)+'.png'
-	p2.Save, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.png'
-ENDIF
+	p.Save, 'linesflux_'+strmid(scifile,15,8,/reverse_offset)+'_slitid'+StrTrim(slitid,2)+'.png'
+	p2.Save, 'yfitnorm_'+strmid(scifile,15,8,/reverse_offset)+'_slitid'+StrTrim(slitid,2)+'.png'
+
+ENDIF ELSE BEGIN
+	undefine, yfitnorm
+ENDELSE
 
 return, yfitfinal
 

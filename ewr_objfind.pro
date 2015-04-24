@@ -62,28 +62,29 @@
 ;-
 ;------------------------------------------------------------------------------
 ; Create the return structure for NOBJ objects
-function long_obj_create, nobj, slitid=slitid, ny=ny
+function ewr_obj_create, nobj, slitid=slitid, ny=ny
 
    objstr = create_struct( $
-            'OBJID' , 0L, $
-            'SLITID', 0L, $
-            'XFRACPOS', 0.0, $
-            'PEAKFLUX', 0.0, $
-            'MASKWIDTH', 0.0, $
-            'FWHM', 0.0, $
-            'FLX_SHFT_WAV', 0.0, $
-            'FLX_SHFT_SPA', 0.0, $                   
-            'FWHMFIT'  , fltarr(ny), $
-            'XPOS'  , fltarr(ny), $
-            'YPOS', findgen(ny), $
-            'HAND_AP', 0L, $
-            'HAND_X', 0.0, $
-            'HAND_Y', 0.0, $
-            'HAND_MINX', 0.0, $
-            'HAND_MAXX', 0.0, $
-            'HAND_FWHM', 0.0, $
-            'HAND_SUB', 0L, $                        
-            'FLUXMODEL',ptr_new())
+    'OBJID' , 0L, $
+    'SLITID', 0L, $
+    'XFRACPOS', 0.0, $
+    'PEAKFLUX', 0.0, $
+    'MASKWIDTH', 0.0, $
+    'FWHM', 0.0, $
+    'FLX_SHFT_WAV', 0.0, $
+    'FLX_SHFT_SPA', 0.0, $                   
+    'FWHMFIT'  , fltarr(ny), $
+    'XPOS'  , fltarr(ny), $
+    'YPOS', findgen(ny), $
+    'HAND_AP', 0L, $
+    'HAND_X', 0.0, $
+    'HAND_Y', 0.0, $
+    'HAND_MINX', 0.0, $
+    'HAND_MAXX', 0.0, $
+    'HAND_FWHM', 0.0, $
+    'HAND_SUB', 0L, $
+    'FLUXMODEL',ptr_new())
+
 ;    'XPOSIVAR'  , fltarr(ny), $
      if (keyword_set(slitid)) then objstr.slitid = slitid
    if (keyword_set(nobj)) then objstr = replicate(objstr, nobj)
@@ -91,7 +92,7 @@ function long_obj_create, nobj, slitid=slitid, ny=ny
    return, objstr
 end
 ;------------------------------------------------------------------------------
-function long_objfind, image, tset_slits=tset_slits $
+function ewr_objfind, image, tset_slits=tset_slits $
                        , fwhm = fwhm1, nperslit = nperslit1 $
                        , ncoeff = ncoeff1 $
                        , peakthresh = peakthresh1, ABSTHRESH = ABSTHRESH1 $
@@ -110,7 +111,6 @@ function long_objfind, image, tset_slits=tset_slits $
 
   ;;----------
                                 ; Test inputs
-save, /all, filename='long_objfind_beginning.sav'
 
   if (keyword_set(image) EQ 0) then $
      message, 'Must specify IMAGE'
@@ -148,7 +148,7 @@ save, /all, filename='long_objfind_beginning.sav'
   if (keyword_set(peakthresh1)) then peakthresh = peakthresh1 $
   else peakthresh = 0.
   if (keyword_set(SIG_THRESH1)) then SIG_THRESH = SIG_THRESH1 $
-  else SIG_THRESH=3.0 ;Original; 5.0
+  else SIG_THRESH=5.0
   if (keyword_set(absthresh1)) then absthresh = absthresh1 $
   else absthresh = 0.
   if (keyword_set(nperslit1)) then nperslit = nperslit1 $
@@ -162,6 +162,7 @@ save, /all, filename='long_objfind_beginning.sav'
   slitmask = long_slits2mask(tset_slits, nslit = nslit)
   skymask = (slitmask GT 0)
   objmask = slitmask*0
+
   ;; Identify slits for specified aperture positions 
   IF KEYWORD_SET(HAND_X) THEN BEGIN
      IF n_elements(HAND_X) NE n_elements(HAND_Y) THEN $
@@ -265,24 +266,10 @@ save, /all, filename='long_objfind_beginning.sav'
                                 ; Catch "no lines" case
 ;       if total(linemask) eq 0 then linemask = replicate(1,image_size[1],image_size[2])
 ;       fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25,inmask=(1b-linemask)) 
-     if (total(linemask) eq 0) or (nslit lt 3) then begin
-        fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 4) 
-        if nsamp LT 9.*fwhm then fluxsub = fluxvec - median(fluxvec) $
-        ELSE BEGIN 
-           fluxsub = fluxvec - djs_median(fluxvec, width = PEAK_SMTH*fwhm)
-         ;; This little bit below deals with degenerate cases for
-         ;; which the 
-         ;; slit gets brighter toward the edge, i.e. when alignment
-         ;; stars
-         ;; saturate and bleed over into other slits. In this case
-         ;; the median smoothed profile is the nearly everywhere the 
-         ;; same as the profile itself, and fluxsub is full of zeros
-         ;; (bad!). If 90% or more of fluxsub is zero, default to use
-         ;; the unfiltered case
-           isub_bad = WHERE(fluxsub EQ 0.0, nsub_bad)
-           frac_bad = double(nsub_bad)/double(nsamp)
-           IF frac_bad GT 0.9 THEN fluxsub = fluxvec - median(fluxvec)
-        ENDELSE
+
+     if total(linemask) eq 0 then begin
+        fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25) 
+        fluxsub = fluxvec - median(fluxvec)
      endif else begin
         onvec = total(flux_spec*line_mask_spec,1)/total(line_mask_spec,1)
         offvec = total(flux_spec*off_mask_spec,1)/total(off_mask_spec,1)
@@ -290,9 +277,7 @@ save, /all, filename='long_objfind_beginning.sav'
         if total(fluxsub gt 0) lt 10 then begin
            fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25) 
            fluxsub = fluxvec - median(fluxvec)
-        endif else begin
-           fluxsub -= median(fluxsub)
-        endelse
+        endif
      endelse
 
 ; The below chunk seems really bad for extended emission.  EWR      
@@ -317,196 +302,105 @@ save, /all, filename='long_objfind_beginning.sav'
      ;; ENDELSE
                                 ; Convolve this with a gaussian
      fluxconv = convol(fluxsub, gkern, /center, /edge_truncate)
-                                ; Find the peaks
-; This line should altered to use new profile code ensuring 
-     xcen = long_find_nminima(-fluxconv, nfind = nperslit $
-                              , width = width $
-                              , minsep = (fwhm > width), ypeak = ypeak1 $
-                              , npeak = npeak)
-     ;stop                       ; added by AHK. want to see what npeak is for each slit.
-     ypeak = interpolate(fluxconv, xcen)
-     ;; This below masks out the 2.0*FWHM from the stats JFH 09/11
-     imask = lonarr(nsamp) + 1L
-     xvec = findgen(nsamp)
-
-     FOR zz = 0L, npeak-1L DO BEGIN
-        ibad = WHERE(abs(xvec-xcen[zz]) LE FWHM, nbad)
-        IF nbad GT 0 THEN imask[ibad] = 0L
-     ENDFOR
-
-     ;; Omit edge pixels and pixels within a FWHM of the object 
-     ;; from these stats.  JFH 09/11
-     igd = WHERE(imask AND xvec GT 3L AND xvec LE (nsamp-3L), ngd)
-     IF ngd EQ 0 THEN igd = lindgen(n_elements(fluxconv))
-     djs_iterstat, fluxconv[igd], sigma = skythresh, sigrej = 1.5
-     djs_iterstat, fluxconv[igd], sigma = sigma, sigrej = 2.5
-; In the case of the on/off subtraction, we should go ahead and use
-; the off vector as an estimate of the sky sigma.
-     if n_elements(offvec) gt 0 then begin
-        offconv = convol(offvec, gkern, /center, /edge_truncate)
-        djs_iterstat, offvec[where(finite(offvec))], sigma = sigmaoff, sigrej = 2.5
-        sigma = sigmaoff < sigma
-     endif 
-     IF skythresh EQ 0.0 THEN skythresh = sigma
-; jm10may25ucsd; if SKYTHRESH is *still* zero then mask out the pixels
-; that are zero
-     if skythresh EQ 0.0 THEN begin 
-        good = where(fluxconv gt 0.0,ngood)
-        if (ngood eq 0L) then message, 'This should not happen'
-        djs_iterstat, fluxconv[good], sigma=skythresh, sigrej=1.5
-     endif
      
-                                ; Get rid of peaks within 3% of slit edge
-     not_near_edge = where(xcen GT nsamp*0.03 AND xcen LT nsamp*0.97,npeak)
-     if npeak GT 0 then begin
-        xcen = xcen[not_near_edge]
-        ypeak = ypeak[not_near_edge]
-     endif
-     if npeak GT 1 then begin
-        threshold = SIG_THRESH*sigma 
-        IF keyword_set(peakthresh) then $
-           threshold = threshold > (peakthresh*max(ypeak))
-        IF KEYWORD_SET(ABSTHRESH) THEN $
-           threshold = threshold > ABSTHRESH
-        IF KEYWORD_SET(VERBOSE) THEN $
-           splog, 'Slitid: ', slitid, ' Using a threshold of ', $
-                  threshold, max(ypeak)
-                                ; Trim to only objects above threshhold
-        ikeep = where(ypeak GT threshold, npeak)
-        if npeak GT 0 then begin
-           xcen = xcen[ikeep]
-           ypeak = ypeak[ikeep]
-        endif
-     endif
+;     null = ahk_profile(fluxconv,ymodel)
+; Set sky as below 35%ile of the brightness.
+     sind = sort(fluxconv)
+     skymask = fluxconv le fluxconv[sind[0.35*n_elements(fluxconv)]]
 
-     IF npeak NE 0 THEN BEGIN
-        handaps = lonarr(npeak)
-        hand_x_temp = fltarr(npeak)
-        hand_y_temp = fltarr(npeak)
-        hand_fwhm_temp = fltarr(npeak)
-        hand_sub_temp = lonarr(npeak)
-        hand_minx_temp = fltarr(npeak)
-        hand_maxx_temp = fltarr(npeak)
-     ENDIF ELSE BEGIN
-        handaps = 0
-        hand_x_temp = 0
-        hand_y_temp = 0
-        hand_fwhm_temp = 0
-        hand_sub_temp = 0
-        hand_minx_temp = 0
-        hand_maxx_temp = 0
-     ENDELSE
-     IF KEYWORD_SET(HAND_X) THEN BEGIN
-        ;; Are there specified apertures for this slit?
-        indslit = WHERE(handslits EQ slitid, nhand)
-        
-        IF nhand GT 0 THEN BEGIN
-           ;; Add these aps to the xcen array
-           xcen_hand = diag_matrix(bilinear(ximg, hand_x[indslit] $
-                                            , hand_y[indslit])*nsamp)
-           IF npeak GT 0 THEN xcen = [xcen, xcen_hand] $
-           ELSE xcen = xcen_hand
-           IF npeak GT 0 THEN ypeak = $
-              [ypeak, interpolate(fluxconv, xcen_hand)] $
-           ELSE ypeak = interpolate(fluxconv, xcen_hand)
-           IF npeak GT 0 THEN handaps = [handaps, lonarr(nhand)+1] $
-           ELSE handaps = lonarr(nhand)+1
-           IF npeak GT 0 THEN hand_x_temp = [hand_x_temp, hand_x[indslit]] $
-           ELSE hand_x_temp =  hand_x[indslit]
-           IF npeak GT 0 THEN hand_y_temp = [hand_y_temp, hand_y[indslit]] $
-           ELSE hand_y_temp = hand_y[indslit]
-           IF npeak GT 0 THEN hand_fwhm_temp =  $
-              [hand_fwhm_temp, hand_fwhm[indslit]] $
-           ELSE  hand_fwhm_temp =  hand_fwhm[indslit]
-           IF npeak GT 0 THEN hand_sub_temp =  $
-              [hand_sub_temp, hand_sub[indslit]] $
-           ELSE  hand_fwhm_temp =  hand_fwhm[indslit]
-           IF npeak GT 0 THEN hand_minx_temp =  $
-              [hand_minx_temp, hand_minx[indslit]] $
-           ELSE  hand_minx_temp =  hand_minx[indslit]
-           IF npeak GT 0 THEN hand_maxx_temp =  $
-              [hand_maxx_temp, hand_maxx[indslit]] $
-           ELSE  hand_maxx_temp =  hand_maxx[indslit]
-           npeak = n_elements(xcen)
-        ENDIF
-     ENDIF
+     skymask = morph_open(skymask,fltarr(9)+1)
+     objmask = 1b-skymask
+     l = label_region(objmask)
+     nObj = max(l)
+     xmin = intarr(nObj)
+     xmax = intarr(nObj)
+     xcen = fltarr(nObj)
+     ypeak = intarr(nObj)
+     xwidth = fltarr(nObj)
+     for kk = 1,max(l)-1 do begin
+        ind = where(l eq kk)
+        xmin[kk] = min(ind)
+        xmax[kk] = max(ind)
+        xcen[kk] = (xmax[kk]+xmin[kk])*0.5
+        xwidth[kk] = (xmax[kk]-xmin[kk])*0.5
+        ypeak[kk] = max(fluxconv[ind])
+     endfor
+     
+     djs_iterstat, fluxconv[where(skymask)], sigma = skythresh, sigrej = 1.5
 
-                                ;stop
-     ;;
-     ;;  Go to next slit if no peaks are significant
-     ;;
-     ;stop ;;Added by AHK to check how many peaks are significant
-     IF npeak EQ 0 THEN CONTINUE ;CONTINUE ;Changing to this will force fluxmodel
-                                ;to be added for every slit: 'IF npeak
-                                ;EQ 0 THEN npeak=1' But be careful!
-                                ;Likely that the forced fluxmodels
-                                ;will be poor quality
-     objstruct1 = long_obj_create(npeak, slitid = slitid, ny = ny)
+                                ; Find the peaks
+     objstruct1 = ewr_obj_create(nobj, slitid = slitid, ny = ny)
+
      ;; Flag aps which were added by hand and set there x,y positions
-     objstruct1.HAND_AP = handaps
-     objstruct1.HAND_X = hand_x_temp
-     objstruct1.HAND_Y = hand_y_temp
-     objstruct1.HAND_FWHM = hand_fwhm_temp
-     objstruct1.HAND_SUB = hand_sub_temp
-     objstruct1.HAND_MINX = hand_minx_temp
-     objstruct1.HAND_MAXX = hand_maxx_temp
+
+     objstruct1.XFRACPOS = (xmin+xmax)*0.5/n_elements(fluxconv) 
+     objstruct1.FWHM = (xmax-xmin)/2
+     objstruct1.PEAKFLUX = ypeak
+     objstruct1.HAND_AP = 1b
+     objstruct1.HAND_X = (xmin+xmax)*0.5
+     objstruct1.HAND_Y = fltarr(nobj)+2048
+     objstruct1.HAND_FWHM = (xmax-xmin)/2
+     objstruct1.HAND_SUB = lonarr(nobj)
+     objstruct1.HAND_MINX = xmin
+     objstruct1.HAND_MAXX = xmax
      for ii = 0,npeak -1 do (objstruct1[ii].FLUXMODEL) = ptr_new(fluxconv)
+
      ;; Make a trace of the object, extrapolated to be in the same place
      ;; within the slit at all Y positions.
 
-     FOR ipeak = 0L, npeak-1L DO BEGIN
-        IF KEYWORD_SET(STDTRACE) THEN BEGIN
-           ;; position of trace at middle of chip
-           x_trace = interpol(STDTRACE, dindgen(n_elements(stdtrace)), ymid)
-           shift = xx1[*, slitid-1] + (xcen[ipeak]/nsamp)*xsize - x_trace
-           objstruct1[ipeak].xpos = STDTRACE + shift
-        ENDIF ELSE BEGIN
-           ;; Below we set the first guess for the trace to be the
-           ;; translated slit boundary, using the slit with the the
-           ;; *largest* rms. The reason for doing this is that for
-           ;; the LRIS blue chip, the slits are split at the chip
-           ;; gap and set to be veritcal lines. To trace with the
-           ;; proper curvature, the rms selection below will always
-           ;; choose the curved trace of the other end of the slit.
-           xx1_bar = total(xx1[*, slitid-1])/double(ny)
-           xx2_bar = total(xx2[*, slitid-1])/double(ny)
-           rms1 = sqrt(total((xx1[*, slitid-1]-xx1_bar)^2)/double(ny))
-           rms2 = sqrt(total((xx2[*, slitid-1]-xx2_bar)^2)/double(ny))
-           IF rms1 GT rms2 THEN objstruct1[ipeak].xpos = xx1[*, slitid-1] $
-              + (xcen[ipeak] / nsamp) * xsize $
-           ELSE  objstruct1[ipeak].xpos = xx2[*, slitid-1] $
-                                          - (1.0 - xcen[ipeak]/nsamp)*xsize
-        ENDELSE
-                                ;stop
-        ;; Estimate the FWHM of this peak by literally looking for the
-        ;; full width at the half-max (using linear interpolation)
-        objstruct1[ipeak].xfracpos = xcen[ipeak]/nsamp
-        objstruct1[ipeak].peakflux = ypeak[ipeak]
-        yhalf = 0.5 * ypeak[ipeak]
-        x0 = round(xcen[ipeak])
-        if (x0 LT nsamp-1) then begin
-           i2 = (where(fluxconv[x0:nsamp-1] LT yhalf))[0]
-           IF i2 EQ -1 THEN xright = 0 $
-           ELSE xright = $
-              interpol(x0+[i2-1, i2], fluxconv[x0+i2-1:x0+i2], yhalf)
-        endif else xright = 0
-        if (x0 GT 0) then begin
-           i1 = (reverse(where(fluxconv[0:x0] LT yhalf)))[0]
-           IF i1 EQ -1 THEN xleft = 0 $
-           ELSE begin 
-              if i1 EQ (nsamp-1) then xleft = nsamp-1 else $
-                 xleft = interpol([i1, i1+1], fluxconv[i1:i1+1], yhalf)
-           endelse
-        endif else xleft = 0
-        fwhmmeas = 0.
-        if (xleft NE 0 AND xright NE 0) then fwhmmeas = (xright - xleft) $
-        else if (xleft NE 0) then fwhmmeas = 2*(xcen[ipeak] - xleft) $
-        else if (xright NE 0) then fwhmmeas = 2*(xright - xcen[ipeak]) 
+     ;; FOR ipeak = 0L, npeak-1L DO BEGIN
+     ;;    IF KEYWORD_SET(STDTRACE) THEN BEGIN
+     ;;       ;; position of trace at middle of chip
+     ;;       x_trace = interpol(STDTRACE, dindgen(n_elements(stdtrace)), ymid)
+     ;;       shift = xx1[*, slitid-1] + (xcen[ipeak]/nsamp)*xsize - x_trace
+     ;;       objstruct1[ipeak].xpos = STDTRACE + shift
+     ;;    ENDIF ELSE BEGIN
+     ;;       ;; Below we set the first guess for the trace to be the
+     ;;       ;; translated slit boundary, using the slit with the the
+     ;;       ;; *largest* rms. The reason for doing this is that for
+     ;;       ;; the LRIS blue chip, the slits are split at the chip
+     ;;       ;; gap and set to be veritcal lines. To trace with the
+     ;;       ;; proper curvature, the rms selection below will always
+     ;;       ;; choose the curved trace of the other end of the slit.
+     ;;       xx1_bar = total(xx1[*, slitid-1])/double(ny)
+     ;;       xx2_bar = total(xx2[*, slitid-1])/double(ny)
+     ;;       rms1 = sqrt(total((xx1[*, slitid-1]-xx1_bar)^2)/double(ny))
+     ;;       rms2 = sqrt(total((xx2[*, slitid-1]-xx2_bar)^2)/double(ny))
+     ;;       IF rms1 GT rms2 THEN objstruct1[ipeak].xpos = xx1[*, slitid-1] $
+     ;;          + (xcen[ipeak] / nsamp) * xsize $
+     ;;       ELSE  objstruct1[ipeak].xpos = xx2[*, slitid-1] $
+     ;;                                      - (1.0 - xcen[ipeak]/nsamp)*xsize
+     ;;    ENDELSE
+     ;;                            ;stop
+     ;;    ;; Estimate the FWHM of this peak by literally looking for the
+     ;;    ;; full width at the half-max (using linear interpolation)
+     ;;    objstruct1[ipeak].xfracpos = xcen[ipeak]/nsamp
+     ;;    objstruct1[ipeak].peakflux = ypeak[ipeak]
+     ;;    yhalf = 0.5 * ypeak[ipeak]
+     ;;    x0 = round(xcen[ipeak])
+     ;;    if (x0 LT nsamp-1) then begin
+     ;;       i2 = (where(fluxconv[x0:nsamp-1] LT yhalf))[0]
+     ;;       IF i2 EQ -1 THEN xright = 0 $
+     ;;       ELSE xright = $
+     ;;          interpol(x0+[i2-1, i2], fluxconv[x0+i2-1:x0+i2], yhalf)
+     ;;    endif else xright = 0
+     ;;    if (x0 GT 0) then begin
+     ;;       i1 = (reverse(where(fluxconv[0:x0] LT yhalf)))[0]
+     ;;       IF i1 EQ -1 THEN xleft = 0 $
+     ;;       ELSE begin 
+     ;;          if i1 EQ (nsamp-1) then xleft = nsamp-1 else $
+     ;;             xleft = interpol([i1, i1+1], fluxconv[i1:i1+1], yhalf)
+     ;;       endelse
+     ;;    endif else xleft = 0
+     ;;    fwhmmeas = 0.
+     ;;    if (xleft NE 0 AND xright NE 0) then fwhmmeas = (xright - xleft) $
+     ;;    else if (xleft NE 0) then fwhmmeas = 2*(xcen[ipeak] - xleft) $
+     ;;    else if (xright NE 0) then fwhmmeas = 2*(xright - xcen[ipeak]) 
 
-        if fwhmmeas NE 0 then objstruct1[ipeak].fwhm = $
-           sqrt((fwhmmeas^2 - fwhm^2) > 4.) $
-        else objstruct1[ipeak].fwhm = fwhm
-     endfor
+     ;;    if fwhmmeas NE 0 then objstruct1[ipeak].fwhm = $
+     ;;       sqrt((fwhmmeas^2 - fwhm^2) > 4.) $
+     ;;    else objstruct1[ipeak].fwhm = fwhm
+     ;; endfor
                                 ;stop
                                 ; Resort the traces by their X position
      objstruct1 = objstruct1[sort(objstruct1.xfracpos)]
@@ -547,7 +441,6 @@ save, /all, filename='long_objfind_beginning.sav'
         IF NOT KEYWORD_SET(SIGMA_SKY) THEN SIGMA_SKY = 7.0D
         sky_uu = min(where(f[sky_sort] GE sigma_sky*skythresh)) > $
                  (long(nsamp * 0.25)+2L)  
-
 
         oksky = xtmp2*0.
         oksky[sky_sort[sky_ll:sky_uu]+2] = 1.
@@ -601,7 +494,7 @@ save, /all, filename='long_objfind_beginning.sav'
      xpos0 = objstruct.xpos
      ypos  = objstruct.ypos
   ENDELSE
-
+;   stop
   ;; Fixed bug where invvar's were being used. a single invvar=0 pixel 
   ;; returns as the fweigthed (or gweighted) trace to initial guess. 
   niter = 12L
@@ -628,14 +521,14 @@ save, /all, filename='long_objfind_beginning.sav'
 ; , invvar=xposivar
   objstruct.xpos = xfit
   ;; Parse out bad objects -- JXP March 2009
-  nobj = n_elements(objstruct)
-  msk = bytarr(nobj)
-  for kk=0L,nobj-1 do begin
-     mx = max(objstruct[kk].xpos)
-     if mx GT 1e-4 then msk[kk] = 1B
-  endfor
-  objstruct = objstruct[where(msk,nobj)]
-  objstruct.objid = lindgen(nobj) + 1L
+  ;; nobj = n_elements(objstruct)
+  ;; msk = bytarr(nobj)
+  ;; for kk=0L,nobj-1 do begin
+  ;;    mx = max(objstruct[kk].xpos)
+  ;;    if mx GT 1e-4 then msk[kk] = 1B
+  ;; endfor
+  ;; objstruct = objstruct[where(msk,nobj)]
+  objstruct.objid = lindgen(n_elements(objstruct)) + 1L
 
   ;; Now for the hand_aps go through and assign the trace to be 
   ;; the brightest object on the slit, or use the slit boundary if there
@@ -719,20 +612,32 @@ save, /all, filename='long_objfind_beginning.sav'
 
   median_fwhm = djs_median(objstruct.FWHM)
   skymask_new = slitmask GT 0
-
+  skymask_wide = skymask_new
   nobj = n_elements(objstruct)
   left_ind  = objstruct.xpos - $
               replicate(median_fwhm, nobj) ## replicate(1.0D, ny)/2.0D
   right_ind = objstruct.xpos + $
               replicate(median_fwhm, nobj) ## replicate(1.0D, ny)/2.0D
 
+  left_ind_line = objstruct.xpos - $
+             5*objstruct.fwhm ## replicate(1.0D, ny)/2.0D
+  right_ind_line = objstruct.xpos + $
+             5*objstruct.fwhm ## replicate(1.0D, ny)/2.0D
+
   FOR iobj = 0L, n_elements(objstruct) - 1L DO BEGIN
      FOR j = 0L, ny-1L DO BEGIN 
         xmin = (floor(left_ind[j, iobj]) >  0) <  (nx-2L)
         xmax = (ceil(right_ind[j, iobj]) <  (nx-1L)) > 0 
         skymask_new[xmin:xmax, j] = 0L
+        xmin = (floor(left_ind_line[j, iobj]) >  0) <  (nx-2L)
+        xmax = (ceil(right_ind_line[j, iobj]) <  (nx-1L)) > 0 
+        skymask_wide[xmin:xmax, j] = 0L
      ENDFOR
   ENDFOR
+  skymask_new = skymask_new*(1b-(1b-skymask_wide)*linemask)
+;  edges = ((slitmask ne shift(slitmask,1)) or slitmask ne shift(slitmask, -1))
+;  edges = dilate(edges,fltarr(21)+1)*(slitmask gt 0)
+;  skymask_new = (skymask_new or edges)
 
   nobj = n_elements(objstruct)
   objstruct.objid = lindgen(nobj) + 1L
@@ -744,7 +649,7 @@ save, /all, filename='long_objfind_beginning.sav'
      ;;, ', tweak: ', $
      ;;          median(abs(xfit[*, i]-objstruct[i].xpos)), ' pixels'
   ENDIF
-save, /all, filename='long_objfind_end.sav'
+  stop
   return, objstruct
 end
 

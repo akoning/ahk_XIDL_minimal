@@ -1,4 +1,4 @@
-function ahk_objextract,bluescifile,red9scifile,red4scifile,blueslitfile=blueslitfile,bluewavefile=bluewavefile,red9slitfile=red9slitfile,red9wavefile=red9wavefile,red4slitfile=red4slitfile,red4wavefile=red4wavefile
+function ahk_objextract,scifile,slitfile=slitfile,wavefile=wavefile
 
 ;+
 ; NAME:
@@ -12,7 +12,7 @@ function ahk_objextract,bluescifile,red9scifile,red4scifile,blueslitfile=bluesli
 ;	3) Feed profile into long_extract_optimal
 ;
 ; CALLING SEQUENCE:
-;	spec=ahk_objextract('lblue_600_4000/Science/sci-lblue2082.fits.gz','slitfile='slits-lblue2039.fits',wavefile='wave-lblue2204.fits')
+;	spec=ahk_objextract('Science/sci-lblue2082.fits.gz',slitfile='slits-lblue2039.fits',wavefile='wave-lblue2204.fits')
 ;
 ; INPUTS:
 ;
@@ -71,17 +71,13 @@ FOR ii =1,nslit DO BEGIN
 
 	slitid = final_struct[structid].SLITID
 	print, '***** SLITID: ', slitid, ' *****'
-	slitindex = [] ;; Array to hold values of index along slit. May not need in final code.
-	yfitnorm = [] ;; Array to hold normalized profile of each slit. May not need in final code.
-	yfitparams = [] ;; Array to hold parameters that describe yfitnorm of each slit. May not need in final code.
+	yfit = [] ;; Array to hold normalized profile of each slit
+	yfitparams = [] ;; Array to hold parameters that describe yfit of each slit
 
 	;; Get object profile along slit
-	yfitnotnorm = ahk_profile(*final_struct[structid].FLUXMODEL,slitindex,yfitnorm,yfitparams,slitid=slitid)
-	slitprofile = ahk_profile2imarray(slitindex,yfitnorm,slitid=slitid,slitfile=slitfile)
+	slitprofile = ahk_profile(*final_struct[structid].FLUXMODEL,yfit,yfitparams,slitid=slitid,slitfile=slitfile)
 
-	;; Save normalized profile and slit position to file (to be used for calculating average normalized profile across all 3 gratings)
-	WRITE_CSV, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.csv', slitindex, yfitnorm
-			
+	;; 
 
 	;; Number of objects in slit. If more than one, must get 1D spectrum for each.
 	ymask = (slitprofile GT 0.01) ;; Assumes yfit is normalized *correctly*

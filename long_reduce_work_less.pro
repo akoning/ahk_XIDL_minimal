@@ -1,14 +1,15 @@
 ;+
 ; NAME:
-;   long_reduce_work
+;   long_reduce_work_less
 ;
 ; PURPOSE:
 ;
 ;   Main program for the Low-redux pipeline.  This set of algorithms
 ;   runs mainly as a black box.
+;   Edited by AHK for multi slit spectra, where we only need it to
+;   output the full science image and objstructfinal_struct.fluxmodel.
 ;
 ; CALLING SEQUENCE:
-;  long_reduce, planfile, /clobber, /NOZAP, /NOFLEX, /NOHELIO 
 ;
 ; INPUTS:
 ;  planfile  -- File created by long_plan which guides the reduction
@@ -43,6 +44,7 @@
 ;   
 ; REVISION HISTORY:
 ;   11-Mar-2005  Written by JH + SB
+;   2-Feb-2015 Edited by AHK to get only whay I need for my multislit data
 ;-  
 ;-----------------------------------------------------------------------------
 ; BUGS:
@@ -51,7 +53,7 @@
 ;-----------------------------------------------------------------------------
 ; The code that follows is the science frame reduction code
 
-PRO long_reduce_work, filename, scifile, ISLIT = ISLIT $
+PRO long_reduce_work_less, filename, scifile, ISLIT = ISLIT $
                       , slitfile = slitfile, wavefile = wavefile $
                       , biasfile = biasfile, pixflatfile = pixflatfile $
                       , illumflatfile = illumflatfile $
@@ -193,7 +195,6 @@ IF NOT KEYWORD_SET(slit_illum) OR COADD_2D THEN slit_illum = 0.0*sciimg +1.0
 ; Allocate images which we will need later
 objimaget = fltarr(nx, ny)
 splog, 'Applying slit illumination'
-stop;; Added by AHKto check gdpix and sciivar. These become modelivar.
 ;; Don't apply illumination corrections larger than 30%
 gdpix = WHERE(slit_illum GT 0.6D AND slit_illum LT 1.4)
 sciimg[gdpix]  = sciimg[gdpix]/slit_illum[gdpix]
@@ -267,13 +268,22 @@ ENDIF ELSE IF (wavemaskType EQ 'LoIon') THEN BEGIN
                7330.20,8268.00,8545.38,8598.39,8665.02,9014.91]
 ENDIF
 
-;wavemask = [3727.00,4861.33,$
-;            4958.91,5006.84,6363.78]
+; AHK: set wavemask for sky subtraction to have all lines in it
+wavemaskSky = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
+               3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
+               4076.35,4101.74,4340.47,4363.21,4471.50,4713.17,4861.33,$
+               4921.93,4958.91,5006.84,5015.68,5047.74,5197.90,5270.40,$
+               5517.71,5537.88,5754.64,5875.66,6312.10,6363.78,6548.10,$
+               6562.77,6583.50,6678.16,6716.44,6730.82,7065.25,7135.80,$
+               7235.00,7281.35,7319.45,7330.20,7751.43,8268.00,8545.38,$
+               8598.39,8665.02,8727.12,8869.00,9014.91,9068.60]
 
 ; Teh Dopplerz
 vsys = -190 ; km/s for M33
 deltalam = wavemask*vsys/3e5
 wavemask = wavemask + deltalam
+deltalamSky = wavemaskSky*vsys/3e5
+wavemaskSky = wavemaskSky + deltalamSky
 
 
 ; Let's make this into a skymasking routine?
@@ -294,17 +304,17 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , SIG_THRESH = SIG_THRESH $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
-                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask)
+                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemaskSky)
 
 splog, 'Aperture masked sky subtraction'
+
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
                         , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
-                       waveimg=waveimg,wavemask=wavemask)
+                       waveimg=waveimg,wavemask=wavemaskSky)
 
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
-;stop
 IF NOT KEYWORD_SET(NOZAP) THEN BEGIN
     splog, 'Comods1r.20120130.0041.fits.gzsmic ray rejection'
     IF KEYWORD_SET(FWHMSET) THEN sigma_psf = $
@@ -330,7 +340,7 @@ IF NOT KEYWORD_SET(NOZAP) THEN BEGIN
 splog, 'Finding objects in sky-subtracted image: Second pass'
 ; Redo object finding on sky subtracted image
 ;IF KEYWORD_SET(OBJSTRUCT1) THEN FWHM = djs_median(objstruct1.FWHM)
-objstruct = long_objfind(sciimg-skyimage, tset_slits = tset_slits $
+objstruct = long_objfind_less(sciimg-skyimage, tset_slits = tset_slits $
                          , invvar = sciivar, skymask = skymask $
                          , objmask = objmask, nperslit = maxobj $
                          , peakthresh = reduxthresh $
@@ -339,7 +349,6 @@ objstruct = long_objfind(sciimg-skyimage, tset_slits = tset_slits $
                          , HAND_X = HAND_X, HAND_Y = HAND_Y $
                          , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
                          , ISLIT = ISLIT, wavemask = wavemask,waveimg=waveimg)
-;stop ;;Added by ahk to see if we can exit long_reduce_work here and get tfinal_struct.fluxmodel in tact.
 ; EWR -- I like the first sky subtraction just fine!
 ;; splog, 'Redoing global sky subtraction'
 ;; skyimaget = long_skysub(sciimg, sciivar, piximg, slitmask, skymask, edgmask $
@@ -473,7 +482,6 @@ FOR jj = 0L, nreduce-1L DO BEGIN
     ENDIF
     tfinal_struct = struct_append(tfinal_struct, extract_struct)
 ENDFOR
-stop ;;Added by ahk to see if we can exit long_reduce_work here and get tfinal_struct.fluxmodel in tact. Yes, it seems to be.
 ; EWR this replaces their per-slit model with the orignal model. 
 skyimage = orig_sky
 ;; Save
