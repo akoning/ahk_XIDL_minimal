@@ -78,7 +78,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
                        , HAND_FWHM = HAND_FWHM1, HAND_SUB = HAND_SUB1 $
                        , INVVAR = invvar $
                        , VERBOSE = VERBOSE, STDTRACE = STDTRACE, ISLIT = ISLIT, $
-                       WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK
+                       WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK, skywavemask = skywavemask
 
   ;;----------
                                 ; Test inputs
@@ -156,12 +156,14 @@ function ewr_skymask, image, tset_slits=tset_slits $
   image_size=size(invvar)
   linemask = bytarr(image_size[1],image_size[2])
   offmask = bytarr(image_size[1],image_size[2])
-  win = 3.5                    ; Angstroms
+  wskymask = bytarr(image_size[1],image_size[2])
+  win = 10                    ; Angstroms
   for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]) lt win 
   for ii = 0,n_elements(wavemask)-1 do offmask = offmask or (abs(waveimg-wavemask[ii]) gt win $
-                                                             and abs(waveimg-wavemask[ii]) lt 2*win) 
-  offmask = offmask*(1b-linemask)
-
+                                                             and abs(waveimg-wavemask[ii]) lt 4*win)
+  for ii = 0,n_elements(skywavemask)-1 do wskymask = wskymask or (abs(waveimg-skywavemask[ii])) lt win*2
+  contmask = 1b-(linemask or wskymask)
+  offmask = offmask*contmask
   skymask_out = bytarr(image_size[1],image_size[2])
 
   for jj = 0L, nreduce-1L DO BEGIN
@@ -169,11 +171,11 @@ function ewr_skymask, image, tset_slits=tset_slits $
      thisimg = image * (slitmask EQ slitid)*mask
      thisline = linemask * (slitmask eq slitid)*mask
      thisoff =  offmask * (slitmask eq slitid)*mask
+     thiscont =  contmask * (slitmask eq slitid)*mask
      if n_elements(waveimg) eq n_elements(image) then $  
         thiswave = waveimg * (slitmask EQ slitid)*mask
 
      ximg = long_slits2x(tset_slits, slitid = slitid)
-
      ;; Smash the image (for this slit) into a single flux vector.
      ;; How many pixels wide is the slit at each Y?
      xsize = xx2[*,slitid-1] - xx1[*,slitid-1]
@@ -196,6 +198,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
      flux_spec = extract_asymbox2(thisimg, left_asym, right_asym)
      line_mask_spec = extract_asymbox2(thisline, left_asym, right_asym)
      off_mask_spec = extract_asymbox2(thisoff, left_asym, right_asym)
+     cont_mask_spec = extract_asymbox2(thiscont, left_asym, right_asym)
 
                                 ; Catch "no lines" case
 ;       if total(linemask) eq 0 then linemask = replicate(1,image_size[1],image_size[2])
@@ -207,14 +210,14 @@ function ewr_skymask, image, tset_slits=tset_slits $
      endif else begin
         onvec = total(flux_spec*line_mask_spec,1)/total(line_mask_spec,1)
         offvec = total(flux_spec*off_mask_spec,1)/total(off_mask_spec,1)
-
+        contvec = total(flux_spec*cont_mask_spec,1)/total(cont_mask_spec,1)
         window = 7
         back = onvec
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
         onback = smooth(back,window,/edge_trun,/nan)
         fluxsub = (onvec-offvec)>0
-
+stop
         back = fluxsub
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
@@ -231,11 +234,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
      endelse
 
 
-<<<<<<< HEAD
-     linemaskvec = (fluxsub/onoffback gt 2.0)*0
-=======
      linemaskvec = (fluxsub/onoffback gt 1.1)
->>>>>>> 16f33ea15b9722ab4c8fc1481e3889bb73d2b7b4
 
      linemaskvec = morph_close(linemaskvec,fltarr(5)+1)
 

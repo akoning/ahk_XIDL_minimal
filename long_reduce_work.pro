@@ -230,6 +230,20 @@ splog, 'Finding objects on the slits: First pass'
 ;----------
 ;  Find objects on the slits
 
+skywavemask = [  5224.137,   5238.747,   5256.083,   5577.338,   5889.95 ,$
+                 5895.92 ,   5915.301,   5932.862,   5953.42 ,   5977.077,$
+                 6003.911,   6300.304,   6363.78 ,   6533.044,   6553.617,$
+                 6577.285,   6604.135,   6634.229,   6900.833,   6923.22 ,$
+                 6949.044,   6978.413,   7011.41 ,   7316.282,   7340.885,$
+                 7369.365,   7401.858,   7438.473,   7479.31 ,   7794.111,$
+                 7821.503,   7853.36 ,   7889.851,   7931.124,   7964.65 ,$
+                 7993.333,   8025.81 ,   8062.178,   8103.   ,   8399.17 ,$
+                 8430.174,   8465.358,   8504.841,   8548.709,   8885.85 ,$
+                 8919.635,   8958.084,   9001.346,   9049.539,   9102.77 ,$
+                 9439.65 ,   9476.83 ,   9519.354,   9567.339,   9620.965,$
+                 9872.137,   9914.673,   9961.932,  10013.986,  10082.468,$
+                 10124.008,  10171.512,  10171.512,  10171.888,  10225.783]
+
 IF (wavemaskType EQ 'Full') THEN BEGIN
    wavemask = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
                3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
@@ -294,7 +308,8 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , SIG_THRESH = SIG_THRESH $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
-                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask)
+                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
+                       skywavemask = skywavemask)
 
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $

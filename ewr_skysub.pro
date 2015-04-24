@@ -125,7 +125,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
             sky_out[k] = median([subset[sind2]])
          endif else sky_out[k] = median([subset])
       endfor
-
+stop
       skyset = bspline_longslit(wsky[sind], sky_out, sky_ivar[sind], isky*0.+1. $
                                 , /groupbadpix, maxrej = 10 $
                                 , fullbkpt = fullbkpt, upper = sigrej $
