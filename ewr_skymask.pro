@@ -78,7 +78,8 @@ function ewr_skymask, image, tset_slits=tset_slits $
                        , HAND_FWHM = HAND_FWHM1, HAND_SUB = HAND_SUB1 $
                        , INVVAR = invvar $
                        , VERBOSE = VERBOSE, STDTRACE = STDTRACE, ISLIT = ISLIT, $
-                       WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK, skywavemask = skywavemask
+                       WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK, $
+                      skywavemask = skywavemask, nudgelam = nudgelam, donudge = donudge
 
   ;;----------
                                 ; Test inputs
@@ -152,12 +153,29 @@ function ewr_skymask, image, tset_slits=tset_slits $
      nreduce = nslit
      slit_vec = lindgen(nslit) + 1L
   ENDELSE
+
+; Calculate the wavelength offset for this mask w.r.t. expected
+; values.
+
+  if keyword_set(donudge) then begin 
+     for ii = 0,n_elements(skywavemask)-1 do begin 
+        dlam = (waveimg-skywavemask)
+        idx = where(abs(dlam lt 7),ct)
+        if ct gt 0 then begin
+           offset = (n_elements(offset) eq 0) ? [dlam[idx]] : [offset,dlam[idx]]
+           vals = (n_elements(vals) eq 0) ? [sciimg[idx]] : [sciimg,sciimg[idx]] 
+        endif
+     endfor
+     nudgelam = total(dlam*sciimg)/total(sciimg)
+  endif
+  
+  stop
   mask = (invvar GT 0.0)
   image_size=size(invvar)
   linemask = bytarr(image_size[1],image_size[2])
   offmask = bytarr(image_size[1],image_size[2])
   wskymask = bytarr(image_size[1],image_size[2])
-  win = 10                    ; Angstroms
+  win = 3.5                    ; Angstroms
   for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]) lt win 
   for ii = 0,n_elements(wavemask)-1 do offmask = offmask or (abs(waveimg-wavemask[ii]) gt win $
                                                              and abs(waveimg-wavemask[ii]) lt 4*win)
@@ -211,12 +229,17 @@ function ewr_skymask, image, tset_slits=tset_slits $
         onvec = total(flux_spec*line_mask_spec,1)/total(line_mask_spec,1)
         offvec = total(flux_spec*off_mask_spec,1)/total(off_mask_spec,1)
         contvec = total(flux_spec*cont_mask_spec,1)/total(cont_mask_spec,1)
+
+
         window = 7
-        back = onvec
+        back = contvec
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
         onback = smooth(back,window,/edge_trun,/nan)
         fluxsub = (onvec-offvec)>0
+
+
+
 stop
         back = fluxsub
         for j = -window,window do back = back < shift(back,j)

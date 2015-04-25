@@ -215,6 +215,7 @@ IF KEYWORD_SET(SKYTRACE) THEN BEGIN
                              , waveimg = waveimg, ISLIT = ISLIT)
 ENDIF
 
+
 ; EWR added this because the pixel fits seem to not be good enough.
    waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
 
@@ -309,7 +310,7 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
                        , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
-                       skywavemask = skywavemask)
+                       skywavemask = skywavemask,/donudge)
 
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
