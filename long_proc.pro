@@ -129,9 +129,9 @@ pro long_proc, filename, flux, invvar, hdr = hdr $
                  quiet = (keyword_set(verbose) EQ 0)
   endif
 
-   if stregex(sxpar(hdr,'INSTRUME'),'LRISBLUE',/bool)*$
-      (1b-stregex(sxpar(hdr,'SLITNAME'),'long',/bool))*$
-      ((1b-sxpar(hdr,'LAMPS') EQ '0,0,0,0,0,0') OR (1b-stregex(sxpar(hdr,'TRAPDOOR'),'closed',/bool))) then begin
+   if stregex(sxpar(reform(hdr,n_elements(hdr)),'INSTRUME'),'LRISBLUE',/bool)*$
+      (1b-stregex(sxpar(reform(hdr,n_elements(hdr)),'SLITNAME'),'long',/bool))*$
+      ((1b-sxpar(reform(hdr,n_elements(hdr)),'LAMPS') EQ '0,0,0,0,0,0') OR (1b-stregex(sxpar(reform(hdr,n_elements(hdr)),'TRAPDOOR'),'closed',/bool))) then begin
                                 ; Blanks the line on the chip gap.
                                 ; Except for longslit and biases
       flux[2047,*]=0.0
