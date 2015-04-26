@@ -35,10 +35,11 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
                       , nbkpts = nbkpts $
                       , bsp = bsp, islit = islit, CHK = CHK, $
                      waveimg = waveimg,wavemask=wavemask,$
-                     ximg=ximg
+                     ximg=ximg, nudgelam = nudgelam
 
    IF NOT KEYWORD_SET(BSP) THEN BSP = 0.6D
    IF NOT KEYWORD_SET(SIGREJ) THEN SIGREJ = 3.0
+   if n_elements(nudgelam) eq 0 then nudgelam = 0.0 
    nx = (size(sciimg))[1] 
    ny = (size(sciimg))[2] 
    nslit = max(slitmask)
@@ -92,14 +93,18 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       endif
       fullbkpt = bspline_bkpts(wsky, nord = 4, bkspace = bsp, /silent)
 
-; Run a 30%-ile rolling filter across the data
       sind = sort(wsky)
       nElts = n_elements(sind) 
       sky_out = fltarr(nElts)
       sky_mad = fltarr(nElts)
       sky_min = fltarr(nElts)
+      sky_2sig = fltarr(nElts)
+      sky_1sig = fltarr(nElts)
+      sky_50 = fltarr(nElts)
+      sky_75 = fltarr(nElts)
+      sky_95 = fltarr(nElts)
 ;      window= ((nElts/ny)/6.) > 16
-      window = nElts/ny
+      window = (nElts/ny)*0.5
       madsky = mad(sky)
 ; Pass 1
       for k = 0,nElts-1 do begin
@@ -110,22 +115,31 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 ;         sky_out[k] = subset[sind2[0.3*nElts2]]
          sky_mad[k] = mad(subset)
          sky_min[k] = min(subset)
+         pcts = cgPercentiles(subset,percentiles=[0.02275,0.158,0.5,0.75,0.95])
+         sky_2sig[k] = pcts[0]
+         sky_1sig[k] = pcts[1]
+         sky_50[k] = pcts[2]
+         sky_75[k] = pcts[3]
+         sky_95[k] = pcts[4]
       endfor 
-; Pass 2
 
-      skymad_im = bspline_iterfit(wsky,sky_mad, $
-                                  everyn=255L*30,/groupbadpix,maxrej=10,$
-                                  lower=sigrej,upper=sigrej,yfit=madsky)
+; Pass 2
+;      skymad_im = bspline_iterfit(wsky,sky_mad, $
+;                                  everyn=255L*30,/groupbadpix,maxrej=10,$
+;                                  lower=sigrej,upper=sigrej,yfit=madsky)
 
       for k = 0,nElts-1 do begin
          subset_inds = sind[((k-window)>0):(k+window)<(nElts-1)]
          subset = sky[subset_inds]
-         if min(abs(wsky[k]-wavemask)) lt 5.5 then begin
-            sind2 = where(subset lt sky_min[k]+3*madsky[k])
-            sky_out[k] = median([subset[sind2]])
-         endif else sky_out[k] = median([subset])
+         sky_est_regular = median(subset)
+         if min(abs(wsky[k]-wavemask-nudgelam)) lt 6.0 then begin
+            sind2 = where(subset lt (4*sky_1sig[k]-3*sky_2sig[k]))
+            sky_est_lower = median(subset[sind2])
+         endif else sky_est_lower = sky_est_regular
+
+         sky_out[k] = sky_est_regular < sky_est_lower
+;         endif else sky_out[k] = median([subset])
       endfor
-stop
       skyset = bspline_longslit(wsky[sind], sky_out, sky_ivar[sind], isky*0.+1. $
                                 , /groupbadpix, maxrej = 10 $
                                 , fullbkpt = fullbkpt, upper = sigrej $
@@ -139,6 +153,8 @@ stop
 ;                                , lower = sigrej, /silent, yfit=yfit)
       ;;;;;;;;;;;;;;;;;;;
       sky_image[all] = (bspline_valu(waveimg[all], skyset) )>0
+
+;stop
       IF KEYWORD_SET(CHK) THEN $
          x_splot, wsky, sky, psym1 = 3, xtwo = wsky, ytwo = yfit, /block
 

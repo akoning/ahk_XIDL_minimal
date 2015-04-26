@@ -64,21 +64,21 @@
 ;------------------------------------------------------------------------------
 
 function ewr_skymask, image, tset_slits=tset_slits $
-                       , fwhm = fwhm1, nperslit = nperslit1 $
-                       , ncoeff = ncoeff1 $
-                       , peakthresh = peakthresh1, ABSTHRESH = ABSTHRESH1 $
-                       , skymask = skymask_new, objmask = objmask $
-                       , OBJTHRESH = OBJTHRESH, CRUDE = CRUDE $
-                       , sky_fwhm = sky_fwhm, sigma_sky = sigma_sky $
-                       , SILENT = SILENT, POS_SET = POS_SET $
-                       , PEAK_SMTH=PEAK_SMTH, SIG_THRESH=sig_thresh1 $
-                       , HAND_X = HAND_X $
-                       , HAND_MINX = HAND_MINX1, HAND_MAXX = HAND_MAXX1 $
-                       , HAND_Y = HAND_Y $
-                       , HAND_FWHM = HAND_FWHM1, HAND_SUB = HAND_SUB1 $
-                       , INVVAR = invvar $
-                       , VERBOSE = VERBOSE, STDTRACE = STDTRACE, ISLIT = ISLIT, $
-                       WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK, $
+                      , fwhm = fwhm1, nperslit = nperslit1 $
+                      , ncoeff = ncoeff1 $
+                      , peakthresh = peakthresh1, ABSTHRESH = ABSTHRESH1 $
+                      , skymask = skymask_new, objmask = objmask $
+                      , OBJTHRESH = OBJTHRESH, CRUDE = CRUDE $
+                      , sky_fwhm = sky_fwhm, sigma_sky = sigma_sky $
+                      , SILENT = SILENT, POS_SET = POS_SET $
+                      , PEAK_SMTH=PEAK_SMTH, SIG_THRESH=sig_thresh1 $
+                      , HAND_X = HAND_X $
+                      , HAND_MINX = HAND_MINX1, HAND_MAXX = HAND_MAXX1 $
+                      , HAND_Y = HAND_Y $
+                      , HAND_FWHM = HAND_FWHM1, HAND_SUB = HAND_SUB1 $
+                      , INVVAR = invvar $
+                      , VERBOSE = VERBOSE, STDTRACE = STDTRACE, ISLIT = ISLIT, $
+                      WAVEIMG = WAVEIMG, WAVEMASK = WAVEMASK, $
                       skywavemask = skywavemask, nudgelam = nudgelam, donudge = donudge
 
   ;;----------
@@ -157,33 +157,37 @@ function ewr_skymask, image, tset_slits=tset_slits $
 ; Calculate the wavelength offset for this mask w.r.t. expected
 ; values.
 
+  minlam = min(waveimg[where(waveimg gt 0)])
+  maxlam = max(waveimg[where(waveimg gt 0)])
+
   if keyword_set(donudge) then begin 
      for ii = 0,n_elements(skywavemask)-1 do begin 
-        dlam = (waveimg-skywavemask)
-        idx = where(abs(dlam lt 7),ct)
+        if (skywavemask[ii] lt minlam) or (skywavemask[ii] gt maxlam) then continue
+        dlam = (waveimg-skywavemask[ii])
+        idx = where(abs(dlam) lt 7,ct)
         if ct gt 0 then begin
            offset = (n_elements(offset) eq 0) ? [dlam[idx]] : [offset,dlam[idx]]
-           vals = (n_elements(vals) eq 0) ? [sciimg[idx]] : [sciimg,sciimg[idx]] 
+           vals = (n_elements(vals) eq 0) ? [image[idx]] : [vals,image[idx]] 
         endif
      endfor
-     nudgelam = total(dlam*sciimg)/total(sciimg)
-  endif
-  
-  stop
+     idx = where(vals gt 10*mad(vals)) ; Find the bright wing of the distribution
+     nudgelam = total(offset[idx]*vals[idx])/total(vals[idx])
+  endif else nudgelam = 0.0
+
   mask = (invvar GT 0.0)
   image_size=size(invvar)
   linemask = bytarr(image_size[1],image_size[2])
   offmask = bytarr(image_size[1],image_size[2])
   wskymask = bytarr(image_size[1],image_size[2])
-  win = 3.5                    ; Angstroms
-  for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]) lt win 
-  for ii = 0,n_elements(wavemask)-1 do offmask = offmask or (abs(waveimg-wavemask[ii]) gt win $
-                                                             and abs(waveimg-wavemask[ii]) lt 4*win)
-  for ii = 0,n_elements(skywavemask)-1 do wskymask = wskymask or (abs(waveimg-skywavemask[ii])) lt win*2
+  win = 3.5                     ; Angstroms
+  for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]-nudgelam) lt win 
+  for ii = 0,n_elements(wavemask)-1 do offmask = offmask or (abs(waveimg-wavemask[ii]-nudgelam) gt 1.5*win $
+                                                             and abs(waveimg-wavemask[ii]-nudgelam) lt 2.5*win)
+  for ii = 0,n_elements(skywavemask)-1 do wskymask = wskymask or (abs(waveimg-skywavemask[ii]-nudgelam)) lt win*2
   contmask = 1b-(linemask or wskymask)
   offmask = offmask*contmask
   skymask_out = bytarr(image_size[1],image_size[2])
-
+  
   for jj = 0L, nreduce-1L DO BEGIN
      slitid = slit_vec[jj]
      thisimg = image * (slitmask EQ slitid)*mask
@@ -212,35 +216,32 @@ function ewr_skymask, image, tset_slits=tset_slits $
      left_asym = rebin(xx1[*,slitid-1], ny, nsamp) + $
                  (xsize/nsamp) # (findgen(nsamp))
      right_asym = left_asym + (xsize/nsamp) # replicate(1,nsamp) 
-     
+
+                                ; Generate rectified spectra and equivalent masks for this slit
      flux_spec = extract_asymbox2(thisimg, left_asym, right_asym)
      line_mask_spec = extract_asymbox2(thisline, left_asym, right_asym)
      off_mask_spec = extract_asymbox2(thisoff, left_asym, right_asym)
      cont_mask_spec = extract_asymbox2(thiscont, left_asym, right_asym)
 
-                                ; Catch "no lines" case
-;       if total(linemask) eq 0 then linemask = replicate(1,image_size[1],image_size[2])
-;       fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25,inmask=(1b-linemask)) 
-
      if total(linemask) eq 0 then begin
         fluxvec = djs_avsigclip(flux_spec, 1, sigrej = 25) 
         fluxsub = fluxvec - median(fluxvec)
      endif else begin
+
         onvec = total(flux_spec*line_mask_spec,1)/total(line_mask_spec,1)
         offvec = total(flux_spec*off_mask_spec,1)/total(off_mask_spec,1)
         contvec = total(flux_spec*cont_mask_spec,1)/total(cont_mask_spec,1)
 
-
-        window = 7
+                                ; This is the findback algorithm from JAC
+                                ; Apply first the continuum region
+        window = 5  ; This is the size of find-back algorithm feature. 
         back = contvec
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
-        onback = smooth(back,window,/edge_trun,/nan)
+        contback = smooth(back,window,/edge_trun,/nan)
+
+        window = 5
         fluxsub = (onvec-offvec)>0
-
-
-
-stop
         back = fluxsub
         for j = -window,window do back = back < shift(back,j)
         for j = -window,window do back = back > shift(back,j)
@@ -256,33 +257,11 @@ stop
         endif
      endelse
 
-
-     linemaskvec = (fluxsub/onoffback gt 1.1)
-
-     linemaskvec = morph_close(linemaskvec,fltarr(5)+1)
-
-     sind = sort(fluxsub)
-     cutoff = (fluxsub)[sind[0.15*n_elements(sind)]] 
-     linemaskvec2 = fluxsub gt cutoff
-     linemaskvec = linemaskvec < linemaskvec2
-
-     skymaskvec = onvec/onback gt 1.5
-     skymaskvec = morph_close(skymaskvec,fltarr(5)+1)
-
-
-     l = label_region(linemaskvec)
-     nelts = n_elements(linemaskvec)
-
-     for kk = 1,max(l) do begin
-        ind = where(l eq kk)
-        minx = float(min(ind))/nElts
-        maxx = float(max(ind))/nElts
-        skymask_out = skymask_out + (ximg gt minx)*(ximg le maxx)*linemask
-     endfor
-
+                                ; Find regions that are large w.r.t. their local maximum
+     skymaskvec = contvec/contback gt 1.25
+     skymaskvec = morph_close(skymaskvec,fltarr(window)+1)
      l = label_region(skymaskvec)
      nelts = n_elements(skymaskvec)
-
      for kk = 1,max(l) do begin
         ind = where(l eq kk)
         minx = float(min(ind))/nElts
@@ -290,7 +269,25 @@ stop
         skymask_out = skymask_out + (ximg gt minx)*(ximg le maxx)
      endfor
 
-endfor
+
+;     linemaskvec = (fluxsub/onoffback) gt 1.1
+     linemaskvec = (onvec-offvec)/offvec gt 0.25
+     sind = sort(fluxsub)
+     cutoff = (fluxsub)[sind[0.15*n_elements(sind)]] 
+     linemaskvec2 = fluxsub gt cutoff
+     linemaskvec = linemaskvec < linemaskvec2
+     linemaskvec = morph_close(linemaskvec,fltarr(2*window+1)+1)
+
+     l = label_region(linemaskvec)
+     nelts = n_elements(linemaskvec)
+     for kk = 1,max(l) do begin
+        ind = where(l eq kk)
+        minx = float(min(ind))/nElts
+        maxx = float(max(ind))/nElts
+        skymask_out = skymask_out + (ximg gt minx)*(ximg le maxx)*linemask
+     endfor
+;     stop
+  endfor
   skymask_out = skymask_out < 1
   skymask_out = (1b-skymask_out)*skymask
 

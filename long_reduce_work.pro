@@ -169,7 +169,7 @@ ENDIF ELSE BEGIN
                             , waveimg = waveimg, ISLIT = ISLIT)
 ENDELSE
 ;   Read in wavelength solution structures
-fwhmset = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 2)
+;fwhmset = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 2)
 
 ;; If ISLIT and the OUTPUT image exists, then read in stuff to save
 if keyword_set(ISLIT) then begin
@@ -217,7 +217,7 @@ ENDIF
 
 
 ; EWR added this because the pixel fits seem to not be good enough.
-   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
+;   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
 
 
 splog, 'Zapping cosmic rays using qzap.'
@@ -310,13 +310,13 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
                        , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
-                       skywavemask = skywavemask,/donudge)
+                       skywavemask = skywavemask,/donudge,nudgelam=nudgelam)
 
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
                         , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
-                       waveimg=waveimg,wavemask=wavemask)
-
+                       waveimg=waveimg,wavemask=wavemask,nudgelam=nudgelam)
+stop
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
