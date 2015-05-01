@@ -104,7 +104,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       sky_75 = fltarr(nElts)
       sky_95 = fltarr(nElts)
 ;      window= ((nElts/ny)/6.) > 16
-      window = (nElts/ny)*1.5
+      window = (nElts/ny)*1.0
       madsky = mad(sky)
 ; Pass 1
       for k = 0,nElts-1 do begin

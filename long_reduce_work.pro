@@ -215,10 +215,10 @@ IF KEYWORD_SET(SKYTRACE) THEN BEGIN
                              , waveimg = waveimg, ISLIT = ISLIT)
 ENDIF
 
-
 ; EWR added this because the pixel fits seem to not be good enough.
-;   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
-
+   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
+; Now removed because of better fits; the fits clearly track the slit
+; edges better as would be expected.  occasionally fits do still go wonky
 
 splog, 'Zapping cosmic rays using qzap.'
 ;----------

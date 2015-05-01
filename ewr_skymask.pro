@@ -271,13 +271,17 @@ function ewr_skymask, image, tset_slits=tset_slits $
 
 
 ;     linemaskvec = (fluxsub/onoffback) gt 1.1
-     linemaskvec = (onvec-offvec)/offvec gt 0.25
-     sind = sort(fluxsub)
-     cutoff = (fluxsub)[sind[0.15*n_elements(sind)]] 
-     linemaskvec2 = fluxsub gt cutoff
-     linemaskvec = linemaskvec < linemaskvec2
-     linemaskvec = morph_close(linemaskvec,fltarr(2*window+1)+1)
+;     linemaskvec = (onvec-offvec)/offvec gt 0.25
+;     sind = sort(fluxsub)
+;     cutoff = (fluxsub)[sind[0.15*n_elements(sind)]] 
+;     linemaskvec2 = fluxsub gt cutoff
+;     linemaskvec = linemaskvec < linemaskvec2
 
+     pcts = cgPercentiles(onvec-offvec,percentiles=[0.02275,0.158])
+     linemaskvec = (onvec-offvec) gt (4*pcts[1]-3*pcts[0])
+
+     linemaskvec = morph_open(linemaskvec,fltarr(window)+1)
+;     stop
      l = label_region(linemaskvec)
      nelts = n_elements(linemaskvec)
      for kk = 1,max(l) do begin
