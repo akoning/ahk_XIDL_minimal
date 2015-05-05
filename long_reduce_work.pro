@@ -216,7 +216,7 @@ IF KEYWORD_SET(SKYTRACE) THEN BEGIN
 ENDIF
 
 ; EWR added this because the pixel fits seem to not be good enough.
-   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
+;   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
 ; Now removed because of better fits; the fits clearly track the slit
 ; edges better as would be expected.  occasionally fits do still go wonky
 
@@ -310,7 +310,7 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
                        , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
-                       skywavemask = skywavemask,/donudge,nudgelam=nudgelam)
+                       skywavemask = skywavemask,nudgelam=nudgelam)
 
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
