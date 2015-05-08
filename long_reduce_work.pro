@@ -564,6 +564,7 @@ endif else final_struct = tfinal_struct
 
 ;----------
 ; Write output file
+save,file='tmpdata.sav',sciimg,modelivar,skyimage,slitmask,objimage,outmask,final_struct
 splog, 'Writing FITS file ', scifile
 mwrfits, float(sciimg), scifile, scihdr[*, 0], /create
 mwrfits, float(modelivar)*float(slitmask GT 0), scifile

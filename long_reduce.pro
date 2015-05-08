@@ -493,7 +493,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
                     ccd_list[iccd], ' GRATING+MASK=', mask_list[imask]
          endelse
 
-          
+
          ;-----------------------------------
          ; Finally, reduce each science image
          ;-----------------------------------

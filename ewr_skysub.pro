@@ -33,11 +33,11 @@
 function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
                       , subsample = subsample, npoly = npoly $
                       , nbkpts = nbkpts $
-                      , bsp = bsp, islit = islit, CHK = CHK, $
+                      , bsp = bsp_in, islit = islit, CHK = CHK, $
                      waveimg = waveimg,wavemask=wavemask,$
                      ximg=ximg, nudgelam = nudgelam
-
-   IF NOT KEYWORD_SET(BSP) THEN BSP = 0.6D
+   IF NOT KEYWORD_SET(BSP_in) THEN BSP_in = 0.6D
+   bsp = bsp_in
    IF NOT KEYWORD_SET(SIGREJ) THEN SIGREJ = 3.0
    if n_elements(nudgelam) eq 0 then nudgelam = 0.0 
    nx = (size(sciimg))[1] 
