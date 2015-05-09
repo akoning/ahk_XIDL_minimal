@@ -343,7 +343,7 @@ function ewr_objfind, image, tset_slits=tset_slits $
      objstruct1.HAND_SUB = lonarr(nobj)
      objstruct1.HAND_MINX = xmin
      objstruct1.HAND_MAXX = xmax
-     for ii = 0,npeak -1 do (objstruct1[ii].FLUXMODEL) = ptr_new(fluxconv)
+     for ii = 0,npeak -1 do (objstruct1[ii].FLUXMODEL) = ptr_new(double(fluxconv))
 
      ;; Make a trace of the object, extrapolated to be in the same place
      ;; within the slit at all Y positions.
