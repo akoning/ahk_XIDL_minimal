@@ -565,8 +565,11 @@ endif else final_struct = tfinal_struct
 ;----------
 ; Write output file
 save,file='tmpdata.sav',sciimg,modelivar,skyimage,slitmask,objimage,outmask,final_struct
+for k = 0,n_elements(final_struct)-1 do $
+   *final_struct[k].fluxmodel = double(*final_struct[k].fluxmodel)
+
 splog, 'Writing FITS file ', scifile
-mwrfits, float(sciimg), scifile, scihdr[*, 0], /create
+mwrfits, float(sciimg), scifile, scihdr, /create
 mwrfits, float(modelivar)*float(slitmask GT 0), scifile
 mwrfits, float(skyimage)*float(slitmask GT 0), scifile
 mwrfits, float(objimage)*float(slitmask GT 0), scifile
