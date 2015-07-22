@@ -364,7 +364,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
               splog, 'No input flats for slitmask for INSTRUMENT=', $
                      ccd_list[iccd], ' GRATING+MASK+WAVE=', mask_list[imask]
           endelse
-
+          ;stop ;AHK check slits match map
          ;---------------------------
          ; Make a wavelength solution
          ;---------------------------
@@ -410,7 +410,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
              splog, 'No input arcs for wavelengths for INSTRUMENT=', $
                     ccd_list[iccd], ' GRATING+MASK+WAVE=', mask_list[imask]
          endelse
-
+         stop ;AHK finished wave soln
          ;;------------------------------------
          ;; Make  pixel and illumination flats 
          ;;------------------------------------

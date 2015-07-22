@@ -352,7 +352,7 @@ ENDIF ELSE BEGIN
       if (nstart GT 0) then peakval = peakval > max(fsum[xstart])
       if (nend GT 0) then peakval = peakval > max((-fsum[xend]))
       if (nstart GT 0) then begin
-         igood = where(fsum[xstart] GT -peakthresh*peakval, ngood)
+        igood = where(fsum[xstart] GT -peakthresh*peakval, ngood)
          ;igood = where(fsum[xstart] GT abs(peakcut), ngood);where(fsum[xend] GT -peakthresh*peakval, ngood) ;Changed by AHK
          if (ngood GT 0) then xstart = xstart[igood] $
          else xstart = [0]
@@ -365,6 +365,7 @@ ENDIF ELSE BEGIN
       endif else xend = [nx-1]
       ;xstart = xstart[sort(xstart)]
       ;xend   = xend[sort(xend)]
+      ;stop ;AHK edit missing/extra start/end positions
 
       ;; HE code follows
       if n_elements(xstart) GT 1 then begin

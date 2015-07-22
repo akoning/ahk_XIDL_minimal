@@ -44,7 +44,7 @@ function long_localskysub, sciimg, sciivar, skyimage, piximg, waveimg  $
                            , SN_GAUSS = SN_GAUSS, CHK = CHK $
                            , sigrej = sigrej1, PROF_NSIGMA=prof_nsigma1 $
                            , NOLOCAL=nolocal,STD=STD, COADD_2D = COADD_2D
-
+    stop ;AHK check sciimg and skyimage (e.g. plot a column and check Halpha)
     if NOT keyword_set(niter) then niter = 4L  
     if NOT keyword_set(bsp) THEN message, 'You must set either bsp to run long_localskysub'
     if NOT keyword_set(nccd) then nccd = 1L
@@ -194,7 +194,7 @@ function long_localskysub, sciimg, sciivar, skyimage, piximg, waveimg  $
                                                 varnoobj*thismask $
                                                 ,  box_rad = box_rad $
                                                 , rn_img = rn_img)
-
+                stop ;AHK check temp_str.flux_opt
                 ;; Bad extraction?
                 if temp_str.wave_opt[0] GE 0. then begin
                     ;; Good extraction
@@ -433,12 +433,14 @@ function long_localskysub, sciimg, sciivar, skyimage, piximg, waveimg  $
                                             , varnoobj = varnoobj*thismask $
                                             ,  box_rad = box_rad $
                                             , rn_img = rn_img)
+       stop ;AHK check single_struct.flux_opt
+
 ;      single_struct.trace += mincol
        single_struct.MINCOL = MINCOL
        single_struct.MAXCOL = MAXCOL
        temp_final_struct = struct_addtags(objstruct[indx[iobj]], single_struct)
        final_struct = struct_append(final_struct, temp_final_struct)
-
+       
        ;; Save to object image as necessary (i.e. NOLOCAL)
        if keyword_set(NOLOCAL) then begin
            flux_model=(replicate(1.0,nx) # single_struct.FLUX_OPT)*this_profile

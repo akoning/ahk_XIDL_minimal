@@ -193,7 +193,6 @@ IF NOT KEYWORD_SET(slit_illum) OR COADD_2D THEN slit_illum = 0.0*sciimg +1.0
 ; Allocate images which we will need later
 objimaget = fltarr(nx, ny)
 splog, 'Applying slit illumination'
-stop;; Added by AHKto check gdpix and sciivar. These become modelivar.
 ;; Don't apply illumination corrections larger than 30%
 gdpix = WHERE(slit_illum GT 0.6D AND slit_illum LT 1.4)
 sciimg[gdpix]  = sciimg[gdpix]/slit_illum[gdpix]
@@ -316,7 +315,7 @@ splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
                         , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
                        waveimg=waveimg,wavemask=wavemask,nudgelam=nudgelam)
-stop
+;stop
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
@@ -355,7 +354,6 @@ objstruct = long_objfind(sciimg-skyimage, tset_slits = tset_slits $
                          , HAND_X = HAND_X, HAND_Y = HAND_Y $
                          , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
                          , ISLIT = ISLIT, wavemask = wavemask,waveimg=waveimg)
-;stop ;;Added by ahk to see if we can exit long_reduce_work here and get tfinal_struct.fluxmodel in tact.
 ; EWR -- I like the first sky subtraction just fine!
 ;; splog, 'Redoing global sky subtraction'
 ;; skyimaget = long_skysub(sciimg, sciivar, piximg, slitmask, skymask, edgmask $
@@ -489,7 +487,8 @@ FOR jj = 0L, nreduce-1L DO BEGIN
     ENDIF
     tfinal_struct = struct_append(tfinal_struct, extract_struct)
 ENDFOR
-stop ;;Added by ahk to see if we can exit long_reduce_work here and get tfinal_struct.fluxmodel in tact. Yes, it seems to be.
+stop ;check spectra for dips (i=16)
+
 ; EWR this replaces their per-slit model with the orignal model. 
 skyimage = orig_sky
 ;; Save
@@ -510,7 +509,7 @@ arc_struct = replicate(create_struct('ARC_FWHM_FIT', fltarr(ny) $
                                      , 'BINNING', bin ) $
                        , n_elements(tfinal_struct))
 tfinal_struct = struct_addtags(tfinal_struct, arc_struct)
-
+stop ;check spectra
 IF KEYWORD_SET(fwhmset) THEN BEGIN
     FOR slitid = 1L, nslit DO BEGIN
         slit_inds = WHERE(tfinal_struct.SLITID EQ slitid, n_obj)
@@ -522,7 +521,7 @@ IF KEYWORD_SET(fwhmset) THEN BEGIN
     ENDFOR
     long_calc_resln, tfinal_struct, anamorph = anamorph
 ENDIF
-
+stop ;check spectra
 ;; Convert wavelengths to vacuum
 nstr = n_elements(tfinal_struct)
 FOR ii = 0, nstr-1 DO BEGIN
@@ -575,6 +574,7 @@ mwrfits, float(skyimage)*float(slitmask GT 0), scifile
 mwrfits, float(objimage)*float(slitmask GT 0), scifile
 mwrfits, float(outmask)*float(slitmask GT 0), scifile
 mwrfits, final_struct, scifile
+
 
 splog, 'Compressing ', scifile
 spawn, 'gzip -f '+scifile

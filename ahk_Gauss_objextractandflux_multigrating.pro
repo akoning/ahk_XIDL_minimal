@@ -255,9 +255,9 @@ FOR ii =1,nslitred9 DO BEGIN
 	
 				;; Output all images etc as they were, but now last science extension contains spec
 				rdfits_struct,scifilered9,scistr ;; read original scifile into structure
-				imgname = STRMID(scifilered9, 15, 8, /REVERSE_OFFSET)
+				imgname = STRMID(scifileblue, 15, 8, /REVERSE_OFFSET)
 				fileout = imgname+'_slit'+STRTRIM(ii,2)+'_obj'+STRTRIM(objid,2)+'.fits'
-				mwrfits,scistr.im0,fileout,scistr.hdr0,/create
+ 				mwrfits,scistr.im0,fileout,scistr.hdr0,/create
 				mwrfits,scistr.im1,fileout,scistr.hdr1 
 				mwrfits,scistr.im2,fileout,scistr.hdr2 
 				mwrfits,scistr.im3,fileout,scistr.hdr3 

@@ -307,7 +307,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
          ;;---------------------------
           if (npix GT 0 OR ntwi GT 0 OR ntrc GT 0) then begin
              ;; If traceflat is specificed, always default to use it, 
-             ;; otherwise use twiflats if possible, otherwise as a
+            ;; otherwise use twiflats if possible, otherwise as a
              ;; last resort use domeflats.
              ;; (Use only the first such file).
              IF (ntrc GT 0) then ithis = jndx[itrc[0]] $
@@ -362,7 +362,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
               splog, 'No input flats for slitmask for INSTRUMENT=', $
                      ccd_list[iccd], ' GRATING+MASK+WAVE=', mask_list[imask]
           endelse
-
+          ;stop ;AHK check slitmask
          ;---------------------------
          ; Make a wavelength solution
          ;---------------------------
@@ -409,7 +409,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
                     ccd_list[iccd], ' GRATING+MASK+WAVE=', mask_list[imask]
          endelse
 	 splog, 'Wavelength Solution Complete'
-         stop
+         ;stop ;Choose best arc
          ;;------------------------------------
          ;; Make  pixel and illumination flats 
          ;;------------------------------------
@@ -492,7 +492,9 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
              splog, 'No input pixel flats or illum flats for INSTRUMENT=', $
                     ccd_list[iccd], ' GRATING+MASK=', mask_list[imask]
          endelse
-
+          
+         save, /all, filename = repstr(planfile, '.par', '_gold.sav')
+         stop ;; Pretty confident with all steps above this point.
 
          ;-----------------------------------
          ; Finally, reduce each science image
@@ -506,7 +508,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
          ;;stop
          ;;endif 
 
-         
+
          for isci = 0L, nsci-1 do begin
              j = jndx[ii[isci]]
              IF KEYWORD_SET(ONLYSCI) THEN $
@@ -535,8 +537,8 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
                          IF ct1 GT 0 THEN filestd = thisstdfile[0] 
                      ENDIF 
                  ENDIF
-                 save, /variables, filename=repstr(planfile, '.par', '.sav')
-                 stop
+                 ;save, /variables, filename=repstr(planfile, '.par', '.sav')
+                 ;stop
                  long_reduce_work, djs_filepath(planstr[j].filename $
                                                 , root_dir = indir), scifile $
                                    , slitfile = slitfile $
@@ -561,7 +563,7 @@ if (NOT keyword_set(planfile)) then planfile = findfile('plan*.par')
                                    , ISLIT = ISLIT, CHK = CHK $
                                    , TRCCHK = TRCCHK, NOLOCAL=nolocal $
                                    , NOSHIFT = NOSHIFT, SKYTRACE = SKYTRACE $
-                                   , _EXTRA = extra, wavemaskType='Full'
+                                   , _EXTRA = extra, wavemaskType='Balmer'
                  splog, prelog = ''
              endif else begin
                  splog, 'Do not overwrite existing science frame ', scifile

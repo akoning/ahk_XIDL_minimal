@@ -436,7 +436,7 @@ save, /all, filename='long_objfind_beginning.sav'
      ;;  Go to next slit if no peaks are significant
      ;;
      ;stop ;;Added by AHK to check how many peaks are significant
-     IF npeak EQ 0 THEN CONTINUE ;CONTINUE ;Changing to this will force fluxmodel
+     IF npeak EQ 0 THEN npeak = 1 ;CONTINUE ;Changing to this will force fluxmodel
                                 ;to be added for every slit: 'IF npeak
                                 ;EQ 0 THEN npeak=1' But be careful!
                                 ;Likely that the forced fluxmodels

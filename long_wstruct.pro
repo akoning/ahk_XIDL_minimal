@@ -43,25 +43,14 @@ calib_path = GETENV('LONGSLIT_DIR') + '/calib/linelists/'
 line_path = GETENV('XIDL_DIR') + '/Spec/Arcs/Lists/'
 ;;----------
 ;; Initial guess for central wavelength and dispersion
+telescope = strtrim(sxpar(hdr, 'TELESCOP'))
+instrument = strtrim(sxpar(hdr, 'INSTRUME'))
+detector = strtrim(sxpar(hdr, 'DETECTOR'))
+binning = long(strsplit(sxpar(hdr, 'BINNING'), ',', /extract))
+mask    = strtrim(sxpar(hdr, 'SLITNAME'))
+mswave = double(strtrim(sxpar(hdr, 'MSWAVE')))
+telid     = strtrim(sxpar(hdr, 'TELID'), 2)
 
-if (size(hdr))[0] gt 1 then begin
-   telescope = strtrim(sxpar(hdr[*,0], 'TELESCOP'))
-   instrument = strtrim(sxpar(hdr[*,0], 'INSTRUME'))
-   detector = strtrim(sxpar(hdr[*,0], 'DETECTOR'))
-   binning = long(strsplit(sxpar(hdr[*,1], 'CCDSUM'), ' ', /extract))
-   mask    = ''
-   mswave = double(strtrim(sxpar(hdr[*,0], 'MSWAVE')))
-   telid     = '';strtrim(sxpar(hdr, 'TELID'), 2)
-   hdr = reform(hdr,n_elements(hdr)) 
-endif else begin
-   telescope = strtrim(sxpar(hdr, 'TELESCOP'))
-   instrument = strtrim(sxpar(hdr, 'INSTRUME'))
-   detector = strtrim(sxpar(hdr, 'DETECTOR'))
-   binning = long(strsplit(sxpar(hdr, 'BINNING'), ',', /extract))
-   mask    = strtrim(sxpar(hdr, 'SLITNAME'))
-   mswave = double(strtrim(sxpar(hdr, 'MSWAVE')))
-   telid     = strtrim(sxpar(hdr, 'TELID'), 2)
-endelse
 
 wstruct = create_struct('INSTRUMENT', instrument $
                         , 'REID', 0L             $
