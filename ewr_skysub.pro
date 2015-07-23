@@ -90,16 +90,15 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
    idxn = where(mask)
    sky_out_nbd = median(sky_nbd[sindn[idxn]],nwindow/2)
    nbd_fullbkpt = bspline_bkpts(wsky_nbd[sindn[idxn]], $
-                                nord = 4, everyn=nwindow*0.2, /silent)
+                                nord = 4, everyn=nwindow*0.33, /silent)
    
    nbd_skyset = bspline_longslit(wsky_nbd[sindn[idxn]], sky_out_nbd, $
                                  sky_ivar_nbd[sindn[idxn]], nbd[sindn[idxn]]*0.+1. $
                                  , /groupbadpix, maxrej = 10 $
                                  , fullbkpt = nbd_fullbkpt, upper = sigrej $
                                  , lower = sigrej, /silent, $
-                                 yfit=yfit,everyn=nwindow*0.2)
+                                 yfit=yfit,everyn=nwindow*0.33)
    sky_image2[all] = (bspline_valu(waveimg[all], nbd_skyset) )>0
-   
    for jj = 0L, nreduce-1L DO BEGIN
       slitid = slit_vec[jj]
       ;; Select only the pixels on this slit
@@ -190,6 +189,13 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
          x_splot, wsky, sky, psym1 = 3, xtwo = wsky, ytwo = yfit, /block
 
    endfor
-   sky_image = (sky_image < sky_image2)
-   return, sky_image
+
+   sky_image_out = (sky_image < sky_image2)
+   idx = where((sky_image_out eq 0)*(sky_image gt 0),ct)
+   if ct gt 0 then sky_image_out[idx] = sky_image[idx]
+   idx = where((sky_image_out eq 0)*(sky_image2 gt 0),ct)
+   if ct gt 0 then sky_image_out[idx] = sky_image2[idx]
+
+              
+   return, sky_image_out
 end
