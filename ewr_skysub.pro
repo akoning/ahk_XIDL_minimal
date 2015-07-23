@@ -69,6 +69,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 ; Generate an all-mask sky model.
 
    nbd = where((sky_slitmask gt 0)*(waveimg ne 0), nnbd)
+   all = where((slitmask gt 0)*(waveimg ne 0))
    wsky_nbd = waveimg[nbd]
    sky_nbd = sciimg[nbd]
    sky_ivar_nbd = sciivar[nbd]
@@ -97,7 +98,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
                                  , fullbkpt = nbd_fullbkpt, upper = sigrej $
                                  , lower = sigrej, /silent, $
                                  yfit=yfit,everyn=nwindow*0.2)
-   sky_image2[nbd] = (bspline_valu(waveimg[nbd], nbd_skyset) )>0
+   sky_image2[all] = (bspline_valu(waveimg[all], nbd_skyset) )>0
    
    for jj = 0L, nreduce-1L DO BEGIN
       slitid = slit_vec[jj]
