@@ -1,3 +1,4 @@
+;+
 ; NAME:
 ;   long_skysub
 ;
@@ -27,6 +28,11 @@
 ; PROCEDURES CALLED:
 ;
 ; REVISION HISTORY:
+;
+;       Wed Jul 22 10:29:14 2015, <erosolo@noise.siglab.ok.ubc.ca>
+;
+;		Additional revisions to deal with diffuse emission
+;
 ;   27-May-2005 Written by J. Hennawi (UCB)
 ;-
 ;------------------------------------------------------------------------------
@@ -44,6 +50,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
    ny = (size(sciimg))[2] 
    nslit = max(slitmask)
    sky_image = sciimg * 0.
+   sky_image2 = sky_image
    if NOT keyword_set(skymask) then skymask = slitmask*0+1
    
    sky_slitmask = slitmask*(skymask*(sciivar GT 0) AND EDGMASK EQ 0)
@@ -58,11 +65,46 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
        nreduce = nslit
        slit_vec = lindgen(nslit) + 1L
    ENDELSE
+
+; Generate an all-mask sky model.
+
+   nbd = where((slitmask gt 0)*(waveimg ne 0), nnbd)
+   wsky_nbd = waveimg[nbd]
+   sky_nbd = sciimg[nbd]
+   sky_ivar_nbd = sciivar[nbd]
+
+   sindn = sort(wsky_nbd)
+   nElts = n_elements(sindn) 
+   madsky = mad(sky_nbd)
+   mask = bytarr(nElts)+1
+   nPass = 10
+   nwindow = (nElts/ny)*0.1 
+   for i = 0,nPass-1 do begin
+      idxn = where(mask)
+      sky_mad = median(abs(sky_nbd[sindn[idxn]]-shift(sky_nbd[sindn[idxn]],1)),nwindow*2)/0.6745
+      sky_med = median(sky_nbd[sindn[idxn]],nwindow)
+      newmask = sky_nbd[sindn[idxn]] lt sky_mad*2+sky_med
+      mask[idxn] = newmask
+   endfor
+   idxn = where(mask)
+   sky_out_nbd = median(sky_nbd[sindn[idxn]],nwindow/2)
+   nbd_fullbkpt = bspline_bkpts(wsky_nbd[sindn[idxn]], $
+                                nord = 4, everyn=nwindow*0.2, /silent)
+   
+   nbd_skyset = bspline_longslit(wsky_nbd[sindn[idxn]], sky_out_nbd, $
+                                 sky_ivar_nbd[sindn[idxn]], nbd[sindn[idxn]]*0.+1. $
+                                 , /groupbadpix, maxrej = 10 $
+                                 , fullbkpt = nbd_fullbkpt, upper = sigrej $
+                                 , lower = sigrej, /silent, $
+                                 yfit=yfit,everyn=nwindow*0.2)
+   sky_image2[nbd] = (bspline_valu(waveimg[nbd], nbd_skyset) )>0
+   
    for jj = 0L, nreduce-1L DO BEGIN
       slitid = slit_vec[jj]
       ;; Select only the pixels on this slit
       all = where((slitmask EQ slitid)*(waveimg ne 0), nall)
       isky = where((sky_slitmask EQ slitid)*(waveimg ne 0), nsky)
+
       if (nsky LT 10) then begin
          splog, 'Not enough sky pixels found in slit ', slitid, nsky, nall
          continue
@@ -72,7 +114,8 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       wsky = waveimg[isky]
       sky = sciimg[isky]
       sky_ivar = sciivar[isky]
-      
+
+     
 ;      if keyword_set(nbkpts) then everyn =  1.0*nsky / (nbkpts+1) $
 ;      else everyn = 0.6 * nsky / ny
       pos_sky = where(sky GT 1.0 AND sky_ivar GT 0., npos)
@@ -118,46 +161,20 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       endfor
       idx = where(mask)
       sky_out = median(sky[sind[idx]],window/2)
-; Pass 1
-;;       for k = 0,nElts-1 do begin
-;;          subset_inds = sind[((k-window)>0):(k+window)<(nElts-1)]
-;;          subset = sky[subset_inds]
-;; ;         sind2 = sort(subset)
-;; ;         nElts2 = n_elements(sind2)
-;; ;         sky_out[k] = subset[sind2[0.3*nElts2]]
-;;          sky_min[k] = min(subset)
-;;          pcts = cgPercentiles(subset,percentiles=[0.02275,0.158,0.5,0.75,0.95])
-;;          sky_2sig[k] = pcts[0]
-;;          sky_1sig[k] = pcts[1]
-;;          sky_50[k] = pcts[2]
-;;          sky_75[k] = pcts[3]
-;;          sky_95[k] = pcts[4]
-;;       endfor 
 
-;; ; Pass 2
-;; ;      skymad_im = bspline_iterfit(wsky,sky_mad, $
-;; ;                                  everyn=255L*30,/groupbadpix,maxrej=10,$
-;; ;                                  lower=sigrej,upper=sigrej,yfit=madsky)
 
-;;       for k = 0,nElts-1 do begin
-;;          subset_inds = sind[((k-window)>0):(k+window)<(nElts-1)]
-;;          subset = sky[subset_inds]
-;;          sky_est_regular = median(subset)
-;; ;         if min(abs(wsky[sind[k]]-wavemask-nudgelam)) lt 6.0 then begin
-;;          sind2 = where((subset lt (madsky*2+sky_1sig[k])) and $
-;;                        (subset gt (sky_2sig[k])))
-;;          sky_est_lower = median(subset[sind2])
-;; ;         endif else sky_est_lower = sky_est_regular
-;;          sky_est1[k] = sky_est_regular
-;;          sky_est2[k] = sky_est_lower
-;;          sky_out[k] = sky_est_regular < sky_est_lower
-;;       endfor
-      fullbkpt = bspline_bkpts(wsky[sind[idx]], nord = 4, everyn=window*0.2, /silent)
 
-      skyset = bspline_longslit(wsky[sind[idx]], sky_out, sky_ivar[sind[idx]], isky[sind[idx]]*0.+1. $
+      fullbkpt = bspline_bkpts(wsky[sind[idx]], nord = 4, $
+                               everyn=window*0.2, /silent)
+
+      skyset = bspline_longslit(wsky[sind[idx]], sky_out, $
+                                sky_ivar[sind[idx]], isky[sind[idx]]*0.+1. $
                                 , /groupbadpix, maxrej = 10 $
                                 , fullbkpt = fullbkpt, upper = sigrej $
-                                , lower = sigrej, /silent, yfit=yfit,everyn=window*0.2)
+                                , lower = sigrej, /silent, $
+                                yfit=yfit,everyn=window*0.2)
+
+
 
       ;;;;;;;;;;;;;;;;;;;
       ;; JXP -- Have had to kludge this when using a kludged Arc frame
@@ -168,11 +185,10 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       ;;;;;;;;;;;;;;;;;;;
       sky_image[all] = (bspline_valu(waveimg[all], skyset) )>0
 
-;stop
       IF KEYWORD_SET(CHK) THEN $
          x_splot, wsky, sky, psym1 = 3, xtwo = wsky, ytwo = yfit, /block
 
    endfor
-
+   sky_image = (sky_image < sky_image2)
    return, sky_image
 end

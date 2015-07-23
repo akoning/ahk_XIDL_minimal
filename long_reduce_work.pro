@@ -315,7 +315,7 @@ splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
                         , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
                        waveimg=waveimg,wavemask=wavemask,nudgelam=nudgelam)
-;stop
+stop
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
