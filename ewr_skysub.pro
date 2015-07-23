@@ -68,7 +68,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 
 ; Generate an all-mask sky model.
 
-   nbd = where((slitmask gt 0)*(waveimg ne 0), nnbd)
+   nbd = where((sky_slitmask gt 0)*(waveimg ne 0), nnbd)
    wsky_nbd = waveimg[nbd]
    sky_nbd = sciimg[nbd]
    sky_ivar_nbd = sciivar[nbd]
