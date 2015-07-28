@@ -54,7 +54,10 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
    if NOT keyword_set(skymask) then skymask = slitmask*0+1
    
    sky_slitmask = slitmask*(skymask*(sciivar GT 0) AND EDGMASK EQ 0)
-
+   
+  linemask = bytarr(nx,ny)
+  win = 8.0                     ; Angstroms
+  for ii = 0,n_elements(wavemask)-1 do linemask = linemask or abs(waveimg-wavemask[ii]-nudgelam) lt win 
 
    IF KEYWORD_SET(islit) THEN BEGIN
        IF islit GT nslit THEN message $
@@ -190,7 +193,9 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 
    endfor
 
-   sky_image_out = (sky_image < sky_image2)
+   sky_image_out = (sky_image)
+   idx = where((sky_image2 lt sky_image) and linemask,ct)
+   if ct gt 0 then sky_image_out[idx] = sky_image2[idx]
    idx = where((sky_image_out eq 0)*(sky_image gt 0),ct)
    if ct gt 0 then sky_image_out[idx] = sky_image[idx]
    idx = where((sky_image_out eq 0)*(sky_image2 gt 0),ct)
