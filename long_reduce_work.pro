@@ -311,10 +311,20 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
                        skywavemask = skywavemask,nudgelam=nudgelam)
 
+   subwavemask = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
+               3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
+               4076.35,4101.74,4340.47,4363.21,4471.50,4713.17,4861.33,$
+               4921.93,4958.91,5006.84,5015.68,5047.74,5197.90,5270.40,$
+               5517.71,5537.88,5754.64,5875.66,6312.10,6363.78,6548.10,$
+               6562.77,6583.50,6678.16,6716.44,6730.82,7065.25,7135.80,$
+               7235.00,7281.35,7319.45,7330.20,7751.43,8268.00,8545.38,$
+               8598.39,8665.02,8727.12,8869.00,9014.91,9068.60]
+
+
 splog, 'Aperture masked sky subtraction'
 skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
                         , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
-                       waveimg=waveimg,wavemask=wavemask,nudgelam=nudgelam)
+                       waveimg=waveimg,wavemask=subwavemask,nudgelam=nudgelam)
 stop
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
