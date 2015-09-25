@@ -281,7 +281,6 @@ function ewr_skymask, image, tset_slits=tset_slits $
      linemaskvec = (onvec-offvec) gt (4*pcts[1]-3*pcts[0])
 
      linemaskvec = morph_open(linemaskvec,fltarr(3)+1)
-;     stop
      l = label_region(linemaskvec)
      nelts = n_elements(linemaskvec)
      for kk = 1,max(l) do begin
