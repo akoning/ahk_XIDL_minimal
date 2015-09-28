@@ -73,39 +73,39 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 ; This is a hack to split red and blue side behavior.  For the red
 ; side we will create an all-mask sky model that serves as the
 ; emission for a set of slits.
-  if nx lt 3072 then begin
-     nbd = where((sky_slitmask gt 0)*(waveimg ne 0), nnbd)
-     all = where((slitmask gt 0)*(waveimg ne 0))
-     wsky_nbd = waveimg[nbd]
-     sky_nbd = sciimg[nbd]
-     sky_ivar_nbd = sciivar[nbd]
+  ;; if nx lt 3072 then begin
+  ;;    nbd = where((sky_slitmask gt 0)*(waveimg ne 0), nnbd)
+  ;;    all = where((slitmask gt 0)*(waveimg ne 0))
+  ;;    wsky_nbd = waveimg[nbd]
+  ;;    sky_nbd = sciimg[nbd]
+  ;;    sky_ivar_nbd = sciivar[nbd]
 
-     sindn = sort(wsky_nbd)
-     nElts = n_elements(sindn) 
-     madsky = mad(sky_nbd)
-     mask = bytarr(nElts)+1
-     nPass = 10
-     nwindow = (nElts/ny)       ;*0.1 
-     for i = 0,nPass-1 do begin
-        idxn = where(mask)
-        sky_mad = median(abs(sky_nbd[sindn[idxn]]-shift(sky_nbd[sindn[idxn]],1)),nwindow*2)/0.6745
-        sky_med = median(sky_nbd[sindn[idxn]],nwindow)
-        newmask = sky_nbd[sindn[idxn]] lt sky_mad*2+sky_med
-        mask[idxn] = newmask
-     endfor
-     idxn = where(mask)
-     sky_out_nbd = median(sky_nbd[sindn[idxn]],nwindow/2)
-     nbd_fullbkpt = bspline_bkpts(wsky_nbd[sindn[idxn]], $
-                                  nord = 4, everyn=nwindow*0.33, /silent)
+  ;;    sindn = sort(wsky_nbd)
+  ;;    nElts = n_elements(sindn) 
+  ;;    madsky = mad(sky_nbd)
+  ;;    mask = bytarr(nElts)+1
+  ;;    nPass = 10
+  ;;    nwindow = (nElts/ny)       ;*0.1 
+  ;;    for i = 0,nPass-1 do begin
+  ;;       idxn = where(mask)
+  ;;       sky_mad = median(abs(sky_nbd[sindn[idxn]]-shift(sky_nbd[sindn[idxn]],1)),nwindow*2)/0.6745
+  ;;       sky_med = median(sky_nbd[sindn[idxn]],nwindow)
+  ;;       newmask = sky_nbd[sindn[idxn]] lt sky_mad*2+sky_med
+  ;;       mask[idxn] = newmask
+  ;;    endfor
+  ;;    idxn = where(mask)
+  ;;    sky_out_nbd = median(sky_nbd[sindn[idxn]],nwindow/2)
+  ;;    nbd_fullbkpt = bspline_bkpts(wsky_nbd[sindn[idxn]], $
+  ;;                                 nord = 4, everyn=nwindow*0.33, /silent)
      
-     nbd_skyset = bspline_longslit(wsky_nbd[sindn[idxn]], sky_out_nbd, $
-                                   sky_ivar_nbd[sindn[idxn]], nbd[sindn[idxn]]*0.+1. $
-                                   , /groupbadpix, maxrej = 10 $
-                                   , fullbkpt = nbd_fullbkpt, upper = sigrej $
-                                   , lower = sigrej, /silent, $
-                                   yfit=yfit,everyn=nwindow*0.33)
-     sky_image2[all] = (bspline_valu(waveimg[all], nbd_skyset) )>0
-  endif
+  ;;    nbd_skyset = bspline_longslit(wsky_nbd[sindn[idxn]], sky_out_nbd, $
+  ;;                                  sky_ivar_nbd[sindn[idxn]], nbd[sindn[idxn]]*0.+1. $
+  ;;                                  , /groupbadpix, maxrej = 10 $
+  ;;                                  , fullbkpt = nbd_fullbkpt, upper = sigrej $
+  ;;                                  , lower = sigrej, /silent, $
+  ;;                                  yfit=yfit,everyn=nwindow*0.33)
+  ;;    sky_image2[all] = (bspline_valu(waveimg[all], nbd_skyset) )>0
+  ;; endif
   if nx gt 3072 then begin
      for jj = 0L, nreduce-1L do begin
         slitid = slit_vec[jj]
@@ -222,7 +222,7 @@ function ewr_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 
      IF KEYWORD_SET(CHK) THEN $
         x_splot, wsky, sky, psym1 = 3, xtwo = wsky, ytwo = yfit, /block
-
+     stop
   endfor
 
   if nx lt 3072 then begin

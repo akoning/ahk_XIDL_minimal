@@ -243,7 +243,7 @@ skywavemask = [  5224.137,   5238.747,   5256.083,   5577.338,   5889.95 ,$
                  9439.65 ,   9476.83 ,   9519.354,   9567.339,   9620.965,$
                  9872.137,   9914.673,   9961.932,  10013.986,  10082.468,$
                  10124.008,  10171.512,  10171.512,  10171.888,  10225.783]
-
+wavemaskType = 'Full'
 IF (wavemaskType EQ 'Full') THEN BEGIN
    wavemask = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
                3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
@@ -322,10 +322,14 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
 
 
 splog, 'Aperture masked sky subtraction'
-skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
-                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
-                       waveimg=waveimg,wavemask=subwavemask,nudgelam=nudgelam)
+skyimaget = long_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
+                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk)
+
 stop
+;skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
+;                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
+;                       waveimg=waveimg,wavemask=subwavemask,nudgelam=nudgelam)
+
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget

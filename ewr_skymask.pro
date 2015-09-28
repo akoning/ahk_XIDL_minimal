@@ -278,7 +278,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
 ;     linemaskvec = linemaskvec < linemaskvec2
 
      pcts = cgPercentiles(onvec-offvec,percentiles=[0.02275,0.158])
-     linemaskvec = (onvec-offvec) gt (4*pcts[1]-3*pcts[0])
+     linemaskvec = (onvec-offvec) gt (3*pcts[1]-2*pcts[0])
 
      linemaskvec = morph_open(linemaskvec,fltarr(3)+1)
      l = label_region(linemaskvec)
@@ -287,9 +287,8 @@ function ewr_skymask, image, tset_slits=tset_slits $
         ind = where(l eq kk)
         minx = float(min(ind))/nElts
         maxx = float(max(ind))/nElts
-        skymask_out = skymask_out + (ximg gt minx)*(ximg le maxx)*linemask
+        skymask_out = skymask_out + (ximg gt minx)*(ximg le maxx);*linemask
      endfor
-;     stop
   endfor
   skymask_out = skymask_out < 1
   skymask_out = (1b-skymask_out)*skymask
