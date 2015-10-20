@@ -108,14 +108,18 @@ function long_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
 
       sigrej = 1.0
       sigma = interpol(sky_mad,wsky[idx],wsky)
-
-      fullbkpt = bspline_bkpts(wsky, nord = 4, bkspace = bsp, /silent)
+      spacepts = (n_elements(wsky)/ny)*1.0
+      fullbkpt = bspline_bkpts(wsky, nord = 4, $
+                               /silent, $
+                               everyn=spacepts)
       ivar = sky_ivar < 1/sigma^2
+      numiter=10
+
       skyset = bspline_longslit(wsky, sky, ivar, ivar*0.+1. $
-                                , /groupbadpix, maxrej = 10 $
+                                , /groupbadpix, maxrej = 3 $
                                 , fullbkpt = fullbkpt, upper = sigrej $
                                 , lower = sigrej, /silent, yfit=yfit $
-                                , maxiter=50, numiter=numiter)
+                                , maxiter=50, numiter=numiter,everyn=spacepts)
      
 
 
