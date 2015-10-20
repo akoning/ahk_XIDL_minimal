@@ -99,7 +99,8 @@ function long_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       mask = bytarr(n_elements(wsky))+1b 
       for i = 0,nPass-1 do begin
          idx = where(mask)
-         sky_mad = median(abs(sky[sind[idx]]-shift(sky[sind[idx]],1)),window*2)/0.6745
+         sky_mad = median(abs(sky[sind[idx]]-$
+                              shift(sky[sind[idx]],1)),window*2)/0.6745
          sky_med = median(sky[sind[idx]],window)
          newmask = sky[sind[idx]] lt sky_mad*2+sky_med
          mask[idx] = newmask
