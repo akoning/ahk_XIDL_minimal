@@ -112,6 +112,11 @@ function long_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
       fullbkpt = bspline_bkpts(wsky, nord = 4, $
                                /silent, $
                                everyn=spacepts)
+      ;; fullbkpt = bspline_bkpts(wsky, nord = 4, $
+      ;;                          /silent, $
+      ;;                          bkspace=0.6)
+
+
       ivar = sky_ivar < 1/sigma^2
       numiter=10
 
@@ -120,6 +125,11 @@ function long_skysub, sciimg, sciivar, piximg, slitmask, skymask, edgmask $
                                 , fullbkpt = fullbkpt, upper = sigrej $
                                 , lower = sigrej, /silent, yfit=yfit $
                                 , maxiter=50, numiter=numiter,everyn=spacepts)
+      ;; skyset = bspline_longslit(wsky, sky, ivar, ivar*0.+1. $
+      ;;                           , /groupbadpix, maxrej = 3 $
+      ;;                           , fullbkpt = fullbkpt, upper = sigrej $
+      ;;                           , lower = sigrej, /silent, yfit=yfit $
+      ;;                           , maxiter=50, numiter=numiter,bkspace=bsp)
      
 
 

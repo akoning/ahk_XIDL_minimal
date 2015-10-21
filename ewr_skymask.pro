@@ -276,7 +276,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
 ;     cutoff = (fluxsub)[sind[0.15*n_elements(sind)]] 
 ;     linemaskvec2 = fluxsub gt cutoff
 ;     linemaskvec = linemaskvec < linemaskvec2
-
+     if total(offvec gt onvec) gt 0.5*nElts then offvec=0
      pcts = cgPercentiles(onvec-offvec,percentiles=[0.02275,0.158])
      linemaskvec = (onvec-offvec) gt (2*pcts[1]-1*pcts[0])
      linemaskvec = morph_open(linemaskvec,fltarr(3)+1)
@@ -294,6 +294,7 @@ function ewr_skymask, image, tset_slits=tset_slits $
   endfor
   skymask_out = skymask_out < 1
   skymask_out = (1b-skymask_out)*skymask
+  stop
   return, skymask_out
 end
 
