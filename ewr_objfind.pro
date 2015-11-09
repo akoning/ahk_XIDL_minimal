@@ -82,7 +82,9 @@ function ewr_obj_create, nobj, slitid=slitid, ny=ny
     'HAND_MINX', 0.0, $
     'HAND_MAXX', 0.0, $
     'HAND_FWHM', 0.0, $
-    'HAND_SUB', 0L)                        
+    'HAND_SUB', 0L, $
+    'FLUXMODEL',ptr_new())
+
 ;    'XPOSIVAR'  , fltarr(ny), $
      if (keyword_set(slitid)) then objstr.slitid = slitid
    if (keyword_set(nobj)) then objstr = replicate(objstr, nobj)
@@ -341,6 +343,8 @@ function ewr_objfind, image, tset_slits=tset_slits $
      objstruct1.HAND_SUB = lonarr(nobj)
      objstruct1.HAND_MINX = xmin
      objstruct1.HAND_MAXX = xmax
+     for ii = 0,npeak -1 do (objstruct1[ii].FLUXMODEL) = ptr_new(double(fluxconv))
+
      ;; Make a trace of the object, extrapolated to be in the same place
      ;; within the slit at all Y positions.
 

@@ -1,6 +1,6 @@
  ;+
 ; NAME:
-;   long_objfind
+;   long_objfind_less
 ;
 ; PURPOSE:
 ;   Find the location of objects within each slit mask
@@ -91,7 +91,7 @@ function long_obj_create, nobj, slitid=slitid, ny=ny
    return, objstr
 end
 ;------------------------------------------------------------------------------
-function long_objfind, image, tset_slits=tset_slits $
+function long_objfind_less, image, tset_slits=tset_slits $
                        , fwhm = fwhm1, nperslit = nperslit1 $
                        , ncoeff = ncoeff1 $
                        , peakthresh = peakthresh1, ABSTHRESH = ABSTHRESH1 $
@@ -435,8 +435,7 @@ save, /all, filename='long_objfind_beginning.sav'
      ;;
      ;;  Go to next slit if no peaks are significant
      ;;
-     ;stop ;;Added by AHK to check how many peaks are significant
-     IF npeak EQ 0 THEN npeak = 1 ;CONTINUE ;Changing to this will force fluxmodel
+     IF npeak EQ 0 THEN npeak=1 ;CONTINUE ;Changing to this will force fluxmodel
                                 ;to be added for every slit: 'IF npeak
                                 ;EQ 0 THEN npeak=1' But be careful!
                                 ;Likely that the forced fluxmodels
@@ -744,7 +743,6 @@ save, /all, filename='long_objfind_beginning.sav'
      ;;, ', tweak: ', $
      ;;          median(abs(xfit[*, i]-objstruct[i].xpos)), ' pixels'
   ENDIF
-save, /all, filename='long_objfind_end.sav'
   return, objstruct
 end
 

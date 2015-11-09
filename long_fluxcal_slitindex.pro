@@ -1,10 +1,14 @@
 ;+
 ; NAME:
-;   long_fluxcal
+;   long_fluxcal_slitindex
 ;
 ; PURPOSE:
 ;   Given an extracted spectrum (in units of counts/pixel) and the
 ;   response function of the spectrograph, flux calibrate the spectrum
+;   Same as long_fluxcal, but have changed to deal with output that
+;   has all slits of a given exposure in a structure array as the last
+;   scifile fits extension--Takes the slitindex of the slit we want to
+;   fluxcal as input.
 ;
 ; CALLING SEQUENCE:
 ;   long_fluxcal
@@ -52,7 +56,7 @@
 ; REVISION HISTORY:
 ;   03-Sep-2005  Written by J. Hennawi UC Berkeley
 ;------------------------------------------------------------------------------
-PRO long_fluxcal, scifile, sensfuncfile = sensfuncfile1 $
+PRO long_fluxcal_slitindex, scifile, slitindex=slitindex, sensfuncfile = sensfuncfile1 $
                   , OUTFIL = OUTFIL, SCALEFILE = SCALEFILE $
                   , WAVE = WAVE, FLUX = FLAM, SIG = FLAM_SIG $
                   , MAG = MAG, FILTER = FILTER, SCIHDR=scihdr $
@@ -72,7 +76,8 @@ IF NOT keyword_set(FRM_SCI) then begin
 ;;flux = x_readspec(scifile, inflg = 2, head = scihdr, wav = wave, sig = sig)
 endif else begin
    print, 'AHK scifile: ', scifile
-    fin_strct = xmrdfits(scifile,5,finhdr, /sile)
+    fin_strctAllSlits = xmrdfits(scifile,5,finhdr, /sile)
+    fin_strct = fin_strctAllSlits[slitindex]
     scihdr = xheadfits(scifile)
     if not keyword_set(SKY) then begin 
        ;; Standard approach

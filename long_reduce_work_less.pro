@@ -1,14 +1,15 @@
 ;+
 ; NAME:
-;   long_reduce_work
+;   long_reduce_work_less
 ;
 ; PURPOSE:
 ;
 ;   Main program for the Low-redux pipeline.  This set of algorithms
 ;   runs mainly as a black box.
+;   Edited by AHK for multi slit spectra, where we only need it to
+;   output the full science image and objstructfinal_struct.fluxmodel.
 ;
 ; CALLING SEQUENCE:
-;  long_reduce, planfile, /clobber, /NOZAP, /NOFLEX, /NOHELIO 
 ;
 ; INPUTS:
 ;  planfile  -- File created by long_plan which guides the reduction
@@ -43,6 +44,7 @@
 ;   
 ; REVISION HISTORY:
 ;   11-Mar-2005  Written by JH + SB
+;   2-Feb-2015 Edited by AHK to get only whay I need for my multislit data
 ;-  
 ;-----------------------------------------------------------------------------
 ; BUGS:
@@ -51,7 +53,7 @@
 ;-----------------------------------------------------------------------------
 ; The code that follows is the science frame reduction code
 
-PRO long_reduce_work, filename, scifile, ISLIT = ISLIT $
+PRO long_reduce_work_less, filename, scifile, ISLIT = ISLIT $
                       , slitfile = slitfile, wavefile = wavefile $
                       , biasfile = biasfile, pixflatfile = pixflatfile $
                       , illumflatfile = illumflatfile $
@@ -169,7 +171,7 @@ ENDIF ELSE BEGIN
                             , waveimg = waveimg, ISLIT = ISLIT)
 ENDELSE
 ;   Read in wavelength solution structures
-;fwhmset = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 2)
+fwhmset = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 2)
 
 ;; If ISLIT and the OUTPUT image exists, then read in stuff to save
 if keyword_set(ISLIT) then begin
@@ -215,9 +217,8 @@ IF KEYWORD_SET(SKYTRACE) THEN BEGIN
 ENDIF
 
 ; EWR added this because the pixel fits seem to not be good enough.
-;   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
-; Now removed because of better fits; the fits clearly track the slit
-; edges better as would be expected.  occasionally fits do still go wonky
+   waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
+
 
 splog, 'Zapping cosmic rays using qzap.'
 ;----------
@@ -230,20 +231,6 @@ splog, 'Finding objects on the slits: First pass'
 ;----------
 ;  Find objects on the slits
 
-skywavemask = [  5224.137,   5238.747,   5256.083,   5577.338,   5889.95 ,$
-                 5895.92 ,   5915.301,   5932.862,   5953.42 ,   5977.077,$
-                 6003.911,   6300.304,   6363.78 ,   6533.044,   6553.617,$
-                 6577.285,   6604.135,   6634.229,   6900.833,   6923.22 ,$
-                 6949.044,   6978.413,   7011.41 ,   7316.282,   7340.885,$
-                 7369.365,   7401.858,   7438.473,   7479.31 ,   7794.111,$
-                 7821.503,   7853.36 ,   7889.851,   7931.124,   7964.65 ,$
-                 7993.333,   8025.81 ,   8062.178,   8103.   ,   8399.17 ,$
-                 8430.174,   8465.358,   8504.841,   8548.709,   8885.85 ,$
-                 8919.635,   8958.084,   9001.346,   9049.539,   9102.77 ,$
-                 9439.65 ,   9476.83 ,   9519.354,   9567.339,   9620.965,$
-                 9872.137,   9914.673,   9961.932,  10013.986,  10082.468,$
-                 10124.008,  10171.512,  10171.512,  10171.888,  10225.783]
-wavemaskType = 'Full'
 IF (wavemaskType EQ 'Full') THEN BEGIN
    wavemask = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
                3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
@@ -281,13 +268,22 @@ ENDIF ELSE IF (wavemaskType EQ 'LoIon') THEN BEGIN
                7330.20,8268.00,8545.38,8598.39,8665.02,9014.91]
 ENDIF
 
-;wavemask = [3727.00,4861.33,$
-;            4958.91,5006.84,6363.78]
+; AHK: set wavemask for sky subtraction to have all lines in it
+wavemaskSky = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
+               3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
+               4076.35,4101.74,4340.47,4363.21,4471.50,4713.17,4861.33,$
+               4921.93,4958.91,5006.84,5015.68,5047.74,5197.90,5270.40,$
+               5517.71,5537.88,5754.64,5875.66,6312.10,6363.78,6548.10,$
+               6562.77,6583.50,6678.16,6716.44,6730.82,7065.25,7135.80,$
+               7235.00,7281.35,7319.45,7330.20,7751.43,8268.00,8545.38,$
+               8598.39,8665.02,8727.12,8869.00,9014.91,9068.60]
 
 ; Teh Dopplerz
 vsys = -190 ; km/s for M33
 deltalam = wavemask*vsys/3e5
 wavemask = wavemask + deltalam
+deltalamSky = wavemaskSky*vsys/3e5
+wavemaskSky = wavemaskSky + deltalamSky
 
 
 ; Let's make this into a skymasking routine?
@@ -308,32 +304,17 @@ skymask1 = ewr_skymask(sciimg, tset_slits = tset_slits, invvar = sciivar $
                        , SIG_THRESH = SIG_THRESH $
                        , HAND_X = HAND_X, HAND_Y = HAND_Y $
                        , HAND_FWHM = HAND_FWHM, STDTRACE = STDTRACE $
-                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemask, $
-                       skywavemask = skywavemask,nudgelam=nudgelam)
-
-   ;; subwavemask = [3711.97,3721.94,3726.03,3728.82,3734.37,3750.15,3770.63,$
-   ;;             3797.90,3835.38,3868.75,3888.65,3970.07,4026.21,4068.60,$
-   ;;             4076.35,4101.74,4340.47,4363.21,4471.50,4713.17,4861.33,$ 
-   ;;            4921.93,4958.91,5006.84,5015.68,5047.74,5197.90,5270.40,$
-   ;;             5517.71,5537.88,5754.64,5875.66,6312.10,6363.78,6548.10,$
-   ;;             6562.77,6583.50,6678.16,6716.44,6730.82,7065.25,7135.80,$
-   ;;             7235.00,7281.35,7319.45,7330.20,7751.43,8268.00,8545.38,$
-   ;;             8598.39,8665.02,8727.12,8869.00,9014.91,9068.60]
-
+                       , ISLIT = ISLIT, WAVEIMG = waveimg, wavemask = wavemaskSky)
 
 splog, 'Aperture masked sky subtraction'
-skyimaget = long_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
-                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk)
 
-stop
-;skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
-;                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
-;                       waveimg=waveimg,wavemask=subwavemask,nudgelam=nudgelam)
+skyimaget = ewr_skysub(sciimg, sciivar, piximg, slitmask, skymask1 $
+                        , edgmask, bsp = bsp, ISLIT = ISLIT, CHK = chk,$
+                       waveimg=waveimg,wavemask=wavemaskSky)
 
 if keyword_set(ISLIT) and nct GT 0 then $
   skyimage[islitmask] = skyimaget[islitmask] $
   else skyimage=skyimaget
-;stop
 IF NOT KEYWORD_SET(NOZAP) THEN BEGIN
     splog, 'Comods1r.20120130.0041.fits.gzsmic ray rejection'
     IF KEYWORD_SET(FWHMSET) THEN sigma_psf = $
@@ -359,7 +340,7 @@ IF NOT KEYWORD_SET(NOZAP) THEN BEGIN
 splog, 'Finding objects in sky-subtracted image: Second pass'
 ; Redo object finding on sky subtracted image
 ;IF KEYWORD_SET(OBJSTRUCT1) THEN FWHM = djs_median(objstruct1.FWHM)
-objstruct = long_objfind(sciimg-skyimage, tset_slits = tset_slits $
+objstruct = long_objfind_less(sciimg-skyimage, tset_slits = tset_slits $
                          , invvar = sciivar, skymask = skymask $
                          , objmask = objmask, nperslit = maxobj $
                          , peakthresh = reduxthresh $
@@ -501,8 +482,6 @@ FOR jj = 0L, nreduce-1L DO BEGIN
     ENDIF
     tfinal_struct = struct_append(tfinal_struct, extract_struct)
 ENDFOR
-stop ;check spectra for dips (i=16)
-
 ; EWR this replaces their per-slit model with the orignal model. 
 skyimage = orig_sky
 ;; Save
@@ -523,7 +502,7 @@ arc_struct = replicate(create_struct('ARC_FWHM_FIT', fltarr(ny) $
                                      , 'BINNING', bin ) $
                        , n_elements(tfinal_struct))
 tfinal_struct = struct_addtags(tfinal_struct, arc_struct)
-stop ;check spectra
+
 IF KEYWORD_SET(fwhmset) THEN BEGIN
     FOR slitid = 1L, nslit DO BEGIN
         slit_inds = WHERE(tfinal_struct.SLITID EQ slitid, n_obj)
@@ -535,7 +514,7 @@ IF KEYWORD_SET(fwhmset) THEN BEGIN
     ENDFOR
     long_calc_resln, tfinal_struct, anamorph = anamorph
 ENDIF
-stop ;check spectra
+
 ;; Convert wavelengths to vacuum
 nstr = n_elements(tfinal_struct)
 FOR ii = 0, nstr-1 DO BEGIN
@@ -577,18 +556,13 @@ endif else final_struct = tfinal_struct
 
 ;----------
 ; Write output file
-save,file='tmpdata.sav',sciimg,modelivar,skyimage,slitmask,objimage,outmask,final_struct
-for k = 0,n_elements(final_struct)-1 do $
-   *final_struct[k].fluxmodel = double(*final_struct[k].fluxmodel)
-
 splog, 'Writing FITS file ', scifile
-mwrfits, float(sciimg), scifile, scihdr, /create
+mwrfits, float(sciimg), scifile, scihdr[*, 0], /create
 mwrfits, float(modelivar)*float(slitmask GT 0), scifile
 mwrfits, float(skyimage)*float(slitmask GT 0), scifile
 mwrfits, float(objimage)*float(slitmask GT 0), scifile
 mwrfits, float(outmask)*float(slitmask GT 0), scifile
 mwrfits, final_struct, scifile
-
 
 splog, 'Compressing ', scifile
 spawn, 'gzip -f '+scifile

@@ -1,8 +1,8 @@
-function ahk_objextract,bluescifile,red9scifile,red4scifile,blueslitfile=blueslitfile,bluewavefile=bluewavefile,red9slitfile=red9slitfile,red9wavefile=red9wavefile,red4slitfile=red4slitfile,red4wavefile=red4wavefile
+function ahk_objextract_singlegrating,scifile,slitfile=slitfile,wavefile=wavefile
 
 ;+
 ; NAME:
-;   ahk_objextract
+;   ahk_objextract_singlegrating
 ;
 ; PURPOSE:
 ;   From output of long_reduce, fit Gaussian model across each slit profile then extract objects accordingly.
@@ -12,7 +12,7 @@ function ahk_objextract,bluescifile,red9scifile,red4scifile,blueslitfile=bluesli
 ;	3) Feed profile into long_extract_optimal
 ;
 ; CALLING SEQUENCE:
-;	spec=ahk_objextract('lblue_600_4000/Science/sci-lblue2082.fits.gz','slitfile='slits-lblue2039.fits',wavefile='wave-lblue2204.fits')
+;	spec=ahk_objextract_singlegrating('Science/sci-lblue2082.fits.gz',slitfile='slits-lblue2039.fits',wavefile='wave-lblue2204.fits')
 ;
 ; INPUTS:
 ;
@@ -51,6 +51,7 @@ outmask = xmrdfits(scifile,4)
 waveimg = xmrdfits(wavefile, silent = (keyword_set(verbose) EQ 0), 0)
 sciimg = xmrdfits(scifile)
 imgminsky = sciimg - skyimage
+
 ;; Size of science image
 nx = (size(sciimg))[1]
 ny = (size(sciimg))[2]
@@ -76,8 +77,8 @@ FOR ii =1,nslit DO BEGIN
 	yfitparams = [] ;; Array to hold parameters that describe yfitnorm of each slit. May not need in final code.
 
 	;; Get object profile along slit
-	yfitnotnorm = ahk_profile(*final_struct[structid].FLUXMODEL,slitindex,yfitnorm,yfitparams,slitid=slitid)
-	slitprofile = ahk_profile2imarray(slitindex,yfitnorm,slitid=slitid,slitfile=slitfile)
+	yfitnotnorm = ahk_profile_singleslit(*final_struct[structid].FLUXMODEL,slitindex,yfitnorm,yfitparams,slitid=slitid)
+	slitprofile = ahk_profile2imarray(slitindex,yfitnorm,slitid=slitid,slitfile=slitfile) ;;Actually want this to be comboyfitnorm, not just yfitnorm -- hence need for ahk_objextract to take in all 3 gratings' sci, slit, and wave files.
 
 	;; Save normalized profile and slit position to file (to be used for calculating average normalized profile across all 3 gratings)
 	WRITE_CSV, 'yfitnorm_slitid'+StrTrim(slitid,2)+'.csv', slitindex, yfitnorm
